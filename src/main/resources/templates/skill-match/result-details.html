@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Result Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+        }
+        .score-excellent {
+            background: linear-gradient(135deg, #20bf6b, #26de81);
+        }
+        .score-good {
+            background: linear-gradient(135deg, #fd9644, #fc5c7d);
+        }
+        .score-average {
+            background: linear-gradient(135deg, #fa8231, #f7b731);
+        }
+        .score-poor {
+            background: linear-gradient(135deg, #fc5c65, #eb3b5a);
+        }
+        .skill-badge {
+            margin: 3px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        .info-section {
+            border-left: 4px solid #6c5ce7;
+            padding-left: 20px;
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a th:href="@{/skill-match/job/{id}(id=${job.id})}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Job Results
+        </a>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-graph-up"></i> Match Result Details</h2>
+            <h4 th:text="${candidate.fullName}">Candidate Name</h4>
+            <p class="text-muted" th:text="${candidate.email}">email@example.com</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <form th:action="@{/skill-match/recalculate/{id}(id=${result.id})}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-warning me-2">
+                    <i class="bi bi-arrow-repeat"></i> Recalculate Score
+                </button>
+            </form>
+            <a th:href="@{/hr/candidates/{id}(id=${candidate.id})}" class="btn btn-primary">
+                <i class="bi bi-person"></i> View Candidate
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Main Score and Summary -->
+        <div class="col-md-4">
+            <!-- Overall Score Card -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <div class="score-circle"
+                         th:classappend="${result.overallScore >= 80} ? 'score-excellent' :
+                                        (${result.overallScore >= 60} ? 'score-good' :
+                                        (${result.overallScore >= 40} ? 'score-average' : 'score-poor'))">
+                        <span th:text="${#numbers.formatDecimal(result.overallScore, 1, 1)}">85.0</span>
+                    </div>
+                    <h4 class="mt-3" th:text="${result.matchLevel}">Excellent Match</h4>
+                    <p class="text-muted">Overall Match Score</p>
+
+                    <hr>
+
+                    <div class="text-start">
+                        <p><strong>Rank Position:</strong>
+                            <span th:if="${result.rankPosition != null}" th:text="${result.rankPosition} + ' of ' + ${result.totalCandidatesRanked}"></span>
+                            <span th:unless="${result.rankPosition != null}" class="text-muted">Not ranked</span>
+                        </p>
+                        <p><strong>Percentile:</strong>
+                            <span th:if="${result.percentile != null}" th:text="${#numbers.formatDecimal(result.percentile, 1, 1)} + '%'"></span>
+                            <span th:unless="${result.percentile != null}" class="text-muted">N/A</span>
+                        </p>
+                        <p><strong>AI Confidence:</strong>
+                            <span th:text="${#numbers.formatDecimal(result.aiConfidence, 1, 1)} + '%'">95%</span>
+                        </p>
+                        <p><strong>AI Model:</strong>
+                            <span th:text="${result.aiModelVersion != null ? result.aiModelVersion : 'v1.0.0'}">v1.0.0</span>
+                        </p>
+                        <p><strong>Processed:</strong>
+                            <span th:text="${#temporals.format(result.matchDate, 'dd MMM yyyy HH:mm')}">01 Jan 2024 14:30</span>
+                        </p>
+                        <p><strong>Recalculations:</strong>
+                            <span th:text="${result.recalculationCount}">0</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Info Card -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-cpu"></i> AI Processing Info</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Processing Time:</td>
+                            <td th:text="${result.aiProcessingTimeMs != null ? result.aiProcessingTimeMs + ' ms' : 'N/A'}">235 ms</td>
+                        </tr>
+                        <tr>
+                            <td>Recalculation Count:</td>
+                            <td th:text="${result.recalculationCount}">1</td>
+                        </tr>
+                        <tr>
+                            <td>Last Recalculated:</td>
+                            <td th:text="${result.lastRecalculatedDate != null ? #temporals.format(result.lastRecalculatedDate, 'dd/MM/yyyy HH:mm') : 'Never'}">Never</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column - Component Scores and Skills -->
+        <div class="col-md-4">
+            <!-- Component Scores -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Component Scores</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Skills Score -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Skills Match</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(result.skillsScore, 1, 1)} + '%'">85%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 th:style="'width: ' + ${result.skillsScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Score -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Experience Match</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(result.experienceScore, 1, 1)} + '%'">70%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar"
+                                 th:style="'width: ' + ${result.experienceScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Education Score -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Education Match</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(result.educationScore, 1, 1)} + '%'">90%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar"
+                                 th:style="'width: ' + ${result.educationScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Personality Score -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Personality Fit</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(result.personalityScore, 1, 1)} + '%'">75%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 th:style="'width: ' + ${result.personalityScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Cultural Fit -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Cultural Fit</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(result.culturalFitScore, 1, 1)} + '%'">80%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-secondary" role="progressbar"
+                                 th:style="'width: ' + ${result.culturalFitScore} + '%;'"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill Analysis -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Skill Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Matched Skills -->
+                    <h6 class="text-success">Matched Skills</h6>
+                    <div th:if="${result.matchedSkills != null and !result.matchedSkills.isEmpty()}">
+                        <div th:each="skill : ${#strings.listSplit(result.matchedSkills, ',')}">
+                            <span class="badge bg-success skill-badge" th:text="${skill.trim()}">Java</span>
+                        </div>
+                    </div>
+                    <p th:unless="${result.matchedSkills != null and !result.matchedSkills.isEmpty()}" class="text-muted">
+                        No matched skills
+                    </p>
+
+                    <hr>
+
+                    <!-- Partial Skills -->
+                    <h6 class="text-warning">Partial Matches</h6>
+                    <div th:if="${result.partialSkills != null and !result.partialSkills.isEmpty()}">
+                        <div th:each="skill : ${#strings.listSplit(result.partialSkills, ',')}">
+                            <span class="badge bg-warning skill-badge" th:text="${skill.trim()}">JavaScript</span>
+                        </div>
+                    </div>
+                    <p th:unless="${result.partialSkills != null and !result.partialSkills.isEmpty()}" class="text-muted">
+                        No partial matches
+                    </p>
+
+                    <hr>
+
+                    <!-- Missing Skills -->
+                    <h6 class="text-danger">Missing Skills</h6>
+                    <div th:if="${result.missingSkills != null and !result.missingSkills.isEmpty()}">
+                        <div th:each="skill : ${#strings.listSplit(result.missingSkills, ',')}">
+                            <span class="badge bg-danger skill-badge" th:text="${skill.trim()}">Python</span>
+                        </div>
+                    </div>
+                    <p th:unless="${result.missingSkills != null and !result.missingSkills.isEmpty()}" class="text-muted">
+                        No missing skills
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Extracted Data -->
+        <div class="col-md-4">
+            <!-- Extracted Skills -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Extracted Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="bi bi-tools"></i> Skills</h6>
+                        <p th:text="${result.extractedSkills != null ? result.extractedSkills : 'Not extracted'}">
+                            Java, Spring Boot, SQL
+                        </p>
+                    </div>
+
+                    <div class="info-section">
+                        <h6><i class="bi bi-briefcase"></i> Experience</h6>
+                        <p th:text="${result.extractedExperience != null ? result.extractedExperience : 'Not extracted'}">
+                            5 years of experience
+                        </p>
+                    </div>
+
+                    <div class="info-section">
+                        <h6><i class="bi bi-mortarboard"></i> Education</h6>
+                        <p th:text="${result.extractedEducation != null ? result.extractedEducation : 'Not extracted'}">
+                            B.Tech Computer Science
+                        </p>
+                    </div>
+
+                    <div class="info-section">
+                        <h6><i class="bi bi-award"></i> Certifications</h6>
+                        <p th:text="${result.extractedCertifications != null ? result.extractedCertifications : 'Not extracted'}">
+                            AWS Certified
+                        </p>
+                    </div>
+
+                    <div class="info-section">
+                        <h6><i class="bi bi-translate"></i> Languages</h6>
+                        <p th:text="${result.extractedLanguages != null ? result.extractedLanguages : 'Not extracted'}">
+                            English, Spanish
+                        </p>
+                    </div>
+
+                    <div class="info-section">
+                        <h6><i class="bi bi-code-square"></i> Projects</h6>
+                        <p th:text="${result.extractedProjects != null ? result.extractedProjects : 'Not extracted'}">
+                            E-commerce Platform
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw Extracted Data -->
+            <div th:if="${result.rawExtractedData != null}" class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-file-code"></i> Raw Extracted Text</h6>
+                </div>
+                <div class="card-body">
+                    <pre style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;"
+                         th:text="${result.rawExtractedData}">Raw text...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

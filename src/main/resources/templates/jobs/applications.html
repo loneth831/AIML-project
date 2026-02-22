@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Applications for ' + ${job.title}">Job Applications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .application-card {
+            transition: transform 0.2s;
+        }
+        .application-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .score-high {
+            background-color: #20bf6b;
+            color: white;
+        }
+        .score-medium {
+            background-color: #fd9644;
+            color: white;
+        }
+        .score-low {
+            background-color: #fc5c65;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/jobs/manage" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Jobs
+            </a>
+            <h2><i class="bi bi-people"></i> Applications for <span th:text="${job.title}"></span></h2>
+            <p class="text-muted">
+                <i class="bi bi-building"></i> <span th:text="${job.department}"></span> |
+                <i class="bi bi-geo-alt"></i> <span th:text="${job.location}"></span>
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-primary p-3" style="font-size: 1.2rem;">
+                <i class="bi bi-person-check"></i> <span th:text="${stats.total}">0</span> Total Applications
+            </span>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${stats.pending}">0</h3>
+                    <span class="badge bg-warning">Pending</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${stats.shortlisted}">0</h3>
+                    <span class="badge bg-info">Shortlisted</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${stats.interview}">0</h3>
+                    <span class="badge bg-primary">Interview</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${stats.rejected}">0</h3>
+                    <span class="badge bg-danger">Rejected</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${stats.hired}">0</h3>
+                    <span class="badge bg-success">Hired</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-check"></i> Applications (AI Ranked)</h5>
+            <span class="text-muted">Sorted by AI Match Score</span>
+        </div>
+        <div class="card-body">
+            <div th:if="${applications.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-people display-1 text-muted mb-4"></i>
+                <h4>No Applications Yet</h4>
+                <p class="text-muted">This job hasn't received any applications.</p>
+            </div>
+
+            <div th:unless="${applications.isEmpty()}" class="row">
+                <div th:each="app : ${applications}" class="col-12 mb-3">
+                    <div class="card application-card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <span class="badge rounded-pill"
+                                                  th:classappend="${app.matchScore != null ?
+                                                    (app.matchScore >= 80 ? 'bg-success' :
+                                                     (app.matchScore >= 60 ? 'bg-warning' : 'bg-danger')) : 'bg-secondary'}"
+                                                  style="font-size: 1.2rem;">
+                                                <span th:if="${app.matchScore != null}"
+                                                      th:text="${#numbers.formatDecimal(app.matchScore, 1, 1)} + '%'">85%</span>
+                                                <span th:unless="${app.matchScore != null}">N/A</span>
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-1" th:text="${app.candidate.fullName}">John Doe</h5>
+                                            <p class="mb-1 text-muted" th:text="${app.candidate.email}">john@example.com</p>
+                                            <p class="mb-0">
+                                                <small>
+                                                    <i class="bi bi-calendar"></i> Applied:
+                                                    <span th:text="${#temporals.format(app.appliedDate, 'dd MMM yyyy HH:mm')}"></span>
+                                                </small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mt-2">
+                                        <span class="badge" th:classappend="${app.statusBadgeClass}"
+                                              style="font-size: 0.9rem;"
+                                              th:text="${app.status.displayName}">
+                                            Pending
+                                        </span>
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="bi bi-briefcase"></i>
+                                                <span th:text="${app.candidate.experienceYears != null ?
+                                                    app.candidate.experienceYears + ' years exp' : 'Exp N/A'}">
+                                                </span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <a th:href="@{/jobs/applications/{id}(id=${app.id})}"
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                    <!-- NEW: View Skill Match Result -->
+                                    <a th:href="@{/skill-match/result/job-candidate?jobId=${job.id}&candidateId=${app.candidate.id}}"
+                                       class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-graph-up"></i> Match
+                                    </a>
+                                </div>
+                            </div>
+                            <div th:if="${app.matchScore != null}" class="mt-3">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small>Skills Match: </small>
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 th:style="'width: ' + ${app.skillsMatchScore != null ? app.skillsMatchScore : 0} + '%;'">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>Experience Match: </small>
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 th:style="'width: ' + ${app.experienceMatchScore != null ? app.experienceMatchScore : 0} + '%;'">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>Education Match: </small>
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 th:style="'width: ' + ${app.educationMatchScore != null ? app.educationMatchScore : 0} + '%;'">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Text - Candidate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .resume-text-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .text-meta {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a th:href="@{/candidate/resume}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Resume
+        </a>
+    </div>
+
+    <!-- Error Message -->
+    <div th:if="${error}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <!-- Resume Text Content -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-file-text"></i> Extracted Resume Text</h5>
+        </div>
+        <div class="card-body">
+            <!-- Meta Information -->
+            <div class="text-meta">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Resume:</strong> <span th:text="${user.resumeOriginalName}"></span></p>
+                        <p class="mb-1"><strong>Extracted on:</strong>
+                            <span th:if="${user.resumeUploadDate}" th:text="${#temporals.format(user.resumeUploadDate, 'dd MMM yyyy, HH:mm')}"></span>
+                            <span th:unless="${user.resumeUploadDate}">Not available</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>AI Status:</strong>
+                            <span th:if="${user.mlProcessed}" class="badge bg-success">Processed</span>
+                            <span th:unless="${user.mlProcessed}" class="badge bg-warning">Pending</span>
+                        </p>
+                        <p class="mb-0"><strong>Characters:</strong>
+                            <span th:text="${#strings.length(resumeText)}">0</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Content -->
+            <div th:if="${resumeText != null}" class="resume-text-container">
+                <span th:text="${resumeText}"></span>
+            </div>
+
+            <!-- No Content Message -->
+            <div th:unless="${resumeText != null}" class="text-center py-5">
+                <i class="bi bi-file-earmark-text display-1 text-muted mb-4"></i>
+                <h4>No Text Content Available</h4>
+                <p class="text-muted">The resume text has not been extracted yet or there was an error in processing.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-4">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" onclick="copyToClipboard()">
+                        <i class="bi bi-clipboard"></i> Copy Text
+                    </button>
+                    <button class="btn btn-outline-success" onclick="downloadText()">
+                        <i class="bi bi-download"></i> Download as TXT
+                    </button>
+                    <a th:href="@{/candidate/resume/view}" target="_blank" class="btn btn-outline-info">
+                        <i class="bi bi-eye"></i> View Original PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note -->
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle"></i>
+        <strong>Note:</strong> This is the text extracted from your resume by our AI system.
+        This text is used for analysis and matching with job requirements.
+    </div>
+</div>
+
+<script>
+    // Copy text to clipboard
+    function copyToClipboard() {
+        const text = document.querySelector('.resume-text-container').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Text copied to clipboard!');
+        });
+    }
+
+    // Download text as .txt file
+    function downloadText() {
+        const text = document.querySelector('.resume-text-container').innerText;
+        const fileName = 'resume-text-' + new Date().toISOString().slice(0, 10) + '.txt';
+
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', fileName);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

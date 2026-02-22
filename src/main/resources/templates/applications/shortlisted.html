@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Shortlisted - ' + ${job.title}">Shortlisted Candidates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .shortlist-card {
+            border-left: 4px solid #17a2b8;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .shortlist-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .rank-badge {
+            font-size: 1.2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #17a2b8, #54d1ed);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a th:href="@{/applications/job/{id}(id=${job.id})}" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Applications
+            </a>
+            <h2><i class="bi bi-star-fill text-warning"></i> Shortlisted Candidates</h2>
+            <h4 th:text="${job.title}">Software Engineer</h4>
+            <p class="text-muted" th:text="${job.department} + ' | ' + ${job.location}"></p>
+        </div>
+        <div>
+            <span class="badge bg-info p-3" style="font-size: 1.2rem;"
+                  th:text="${shortlisted.size()} + ' Candidates'"></span>
+        </div>
+    </div>
+
+    <!-- Shortlist Info -->
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i>
+        These candidates have been shortlisted for further consideration. You can schedule interviews or move them through the hiring process.
+    </div>
+
+    <!-- Shortlisted List -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-star"></i> Shortlisted Candidates</h5>
+        </div>
+        <div class="card-body">
+            <div th:if="${shortlisted.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted mb-4"></i>
+                <h4>No Shortlisted Candidates</h4>
+                <p class="text-muted">Shortlist candidates from the applications page.</p>
+                <a th:href="@{/applications/job/{id}(id=${job.id})}" class="btn btn-primary">
+                    <i class="bi bi-eye"></i> View Applications
+                </a>
+            </div>
+
+            <div th:unless="${shortlisted.isEmpty()}" class="row">
+                <div th:each="app, stat : ${shortlisted}" class="col-md-6">
+                    <div class="card shortlist-card">
+                        <div class="card-body">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <div class="rank-badge" th:text="${stat.index + 1}">1</div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <h5 class="mb-1" th:text="${app.candidate.fullName}">John Doe</h5>
+                                        <span class="badge bg-success"
+                                              th:text="${#numbers.formatDecimal(app.matchScore, 1, 1)} + '%'">85%</span>
+                                    </div>
+                                    <p class="mb-2 text-muted" th:text="${app.candidate.email}">john@example.com</p>
+
+                                    <div class="mb-2">
+                                        <span th:if="${app.candidate.experienceYears}"
+                                              class="badge bg-secondary me-1">
+                                            <i class="bi bi-briefcase"></i>
+                                            <span th:text="${app.candidate.experienceYears} + ' years'"></span>
+                                        </span>
+                                        <span th:if="${app.interviewScheduled}" class="badge bg-success">
+                                            <i class="bi bi-calendar-check"></i> Interview Scheduled
+                                        </span>
+                                        <span th:unless="${app.interviewScheduled}" class="badge bg-warning">
+                                            <i class="bi bi-calendar"></i> Interview Pending
+                                        </span>
+                                    </div>
+
+                                    <div th:if="${app.shortlistedDate}" class="small text-muted mb-2">
+                                        <i class="bi bi-star"></i> Shortlisted on
+                                        <span th:text="${#temporals.format(app.shortlistedDate, 'dd MMM yyyy')}"></span>
+                                    </div>
+
+                                    <div class="mt-2">
+                                        <a th:href="@{/applications/{id}(id=${app.id})}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i> View Details
+                                        </a>
+                                        <a th:href="@{/applications/{id}/schedule-interview(id=${app.id})}"
+                                           class="btn btn-sm btn-success">
+                                            <i class="bi bi-calendar"></i> Schedule Interview
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-signpost"></i> Next Steps</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width: 50px; height: 50px;">
+                        <i class="bi bi-1-circle fs-3"></i>
+                    </div>
+                    <h6>Schedule Interviews</h6>
+                    <small class="text-muted">Set up interviews with shortlisted candidates</small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width: 50px; height: 50px;">
+                        <i class="bi bi-2-circle fs-3"></i>
+                    </div>
+                    <h6>Collect Feedback</h6>
+                    <small class="text-muted">Gather interview feedback and ratings</small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="rounded-circle bg-warning text-white d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width: 50px; height: 50px;">
+                        <i class="bi bi-3-circle fs-3"></i>
+                    </div>
+                    <h6>Make Decision</h6>
+                    <small class="text-muted">Select the best candidate for the role</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

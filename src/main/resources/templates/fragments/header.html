@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF Token Meta Tags -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <!-- Your existing CSS links -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<header th:fragment="header">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe);">
+        <div class="container">
+            <!-- Brand -->
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-robot me-2"></i>
+                <strong>AI Recruitment</strong>
+                <span class="badge bg-light text-dark ms-2">AI+SE</span>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navigation -->
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto">
+                    <!-- Home -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> Home
+                        </a>
+                    </li>
+
+                    <!-- Candidate -->
+                    <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                        <a class="nav-link" href="/candidate/dashboard">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                        <a class="nav-link" href="/candidate/profile">
+                            <i class="bi bi-person"></i> Profile
+                        </a>
+                    </li>
+
+                    <!-- HR -->
+                    <li sec:authorize="hasRole('HR')" class="nav-item">
+                        <a class="nav-link" href="/hr/dashboard">
+                            <i class="bi bi-speedometer2"></i> HR Dashboard
+                        </a>
+                    </li>
+                    <li sec:authorize="hasRole('HR')" class="nav-item">
+                        <a class="nav-link" href="/hr/candidates">
+                            <i class="bi bi-people"></i> Candidates
+                        </a>
+                    </li>
+
+                    <!-- Admin -->
+                    <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                        <a class="nav-link" href="/admin/dashboard">
+                            <i class="bi bi-speedometer2"></i> Admin Dashboard
+                        </a>
+                    </li>
+                    <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                        <a class="nav-link" href="/admin/users">
+                            <i class="bi bi-person-gear"></i> Manage Users
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right Side -->
+                <ul class="navbar-nav">
+                    <!-- Not Logged In -->
+                    <li sec:authorize="!isAuthenticated()" class="nav-item">
+                        <a class="nav-link" href="/auth/login">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </li>
+                    <li sec:authorize="!isAuthenticated()" class="nav-item">
+                        <a class="btn btn-light ms-2" href="/auth/register">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                    </li>
+
+                    <!-- Logged In -->
+                    <li sec:authorize="isAuthenticated()" class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-2"></i>
+                            <span sec:authentication="name">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <div class="dropdown-item-text">
+                                    <small>Logged in as</small><br>
+                                    <strong sec:authentication="name"></strong>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Role-based links -->
+                            <li sec:authorize="hasRole('CANDIDATE')">
+                                <a class="dropdown-item" href="/candidate/dashboard">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('CANDIDATE')">
+                                <a class="dropdown-item" href="/candidate/profile">
+                                    <i class="bi bi-person"></i> Profile
+                                </a>
+                            </li>
+
+                            <li sec:authorize="hasRole('HR')">
+                                <a class="dropdown-item" href="/hr/dashboard">
+                                    <i class="bi bi-speedometer2"></i> HR Dashboard
+                                </a>
+                            </li>
+
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item" href="/admin/dashboard">
+                                    <i class="bi bi-shield-check"></i> Admin Panel
+                                </a>
+                            </li>
+
+                            <li><hr class="dropdown-divider"></li>
+
+                            <li>
+                                <a class="dropdown-item text-danger" href="/auth/logout">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                </ul>
+                <!-- In the navigation section, add these menu items -->
+
+                <!-- For Candidate -->
+                <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                    <a class="nav-link" href="/jobs/browse">
+                        <i class="bi bi-briefcase"></i> Browse Jobs
+                    </a>
+                </li>
+                <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                    <a class="nav-link" href="/jobs/my-applications">
+                        <i class="bi bi-send"></i> My Applications
+                    </a>
+                </li>
+
+                <!-- For HR/Admin -->
+                <li sec:authorize="hasRole('HR')" class="nav-item">
+                    <a class="nav-link" href="/jobs/manage">
+                        <i class="bi bi-briefcase"></i> Manage Jobs
+                    </a>
+                </li>
+                <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                    <a class="nav-link" href="/jobs/manage">
+                        <i class="bi bi-briefcase"></i> Manage Jobs
+                    </a>
+                </li>
+
+                <!-- In the navigation section, add these menu items for HR/Admin -->
+
+                <!-- For HR (add after existing HR menu items) -->
+                <li sec:authorize="hasRole('HR')" class="nav-item">
+                    <a class="nav-link" href="/skill-match/dashboard">
+                        <i class="bi bi-graph-up"></i> Match Dashboard
+                    </a>
+                </li>
+
+                <!-- For Admin (add after existing Admin menu items) -->
+                <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                    <a class="nav-link" href="/skill-match/dashboard">
+                        <i class="bi bi-graph-up"></i> Match Dashboard
+                    </a>
+                </li>
+
+                <!-- For Candidate (add after existing Candidate menu items) -->
+                <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                    <a class="nav-link" href="/skill-match/my-results">
+                        <i class="bi bi-graph-up"></i> My Match Results
+                    </a>
+                </li>
+
+                <!-- For HR/Admin - add after existing menu items -->
+                <li sec:authorize="hasAnyRole('HR', 'ADMIN')" class="nav-item">
+                    <a class="nav-link" href="/ranking/dashboard">
+                        <i class="bi bi-trophy"></i> Rankings
+                    </a>
+                </li>
+
+                <!-- For Candidate - add after existing menu items -->
+                <li sec:authorize="hasRole('CANDIDATE')" class="nav-item">
+                    <a class="nav-link" href="/ranking/my-rankings">
+                        <i class="bi bi-trophy"></i> My Rankings
+                    </a>
+                </li>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

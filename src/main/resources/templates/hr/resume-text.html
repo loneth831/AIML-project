@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Resume Text - HR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .resume-text-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .candidate-header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a th:href="@{'/hr/candidates/' + ${candidate.id}}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Candidate
+        </a>
+    </div>
+
+    <!-- Error Message -->
+    <div th:if="${error}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <!-- Candidate Header -->
+    <div class="candidate-header">
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="bi bi-person-badge"></i> <span th:text="${candidate.fullName}"></span></h4>
+                <p class="mb-0" th:text="${candidate.email}"></p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div th:if="${resume != null and resume.mlProcessed}">
+                    <span class="badge bg-success" style="font-size: 1.2rem;">
+                        AI Score: <span th:text="${#numbers.formatDecimal(resume.mlScore, 1, 1)}"></span>
+                    </span>
+                </div>
+                <div th:if="${resume == null or !resume.mlProcessed}">
+                    <span class="badge bg-warning" style="font-size: 1.2rem;">
+                        <i class="bi bi-clock"></i> AI Analysis Pending
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Text Content -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-file-text"></i> Extracted Resume Text</h5>
+        </div>
+        <div class="card-body">
+            <!-- Resume Info -->
+            <div class="alert alert-info mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Resume File:</strong>
+                            <span th:text="${resume != null ? resume.originalName : 'No resume'}"></span>
+                        </p>
+                        <p class="mb-1"><strong>Uploaded:</strong>
+                            <span th:if="${resume != null and resume.uploadDate != null}"
+                                  th:text="${#temporals.format(resume.uploadDate, 'dd MMM yyyy, HH:mm')}"></span>
+                            <span th:unless="${resume != null and resume.uploadDate != null}">Not available</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>File Size:</strong>
+                            <span th:if="${resume != null and resume.fileSize != null}"
+                                  th:text="${#numbers.formatDecimal(resume.fileSize/1024.0, 1, 1)}">0</span> KB
+                            <span th:unless="${resume != null and resume.fileSize != null}">N/A</span>
+                        </p>
+                        <p class="mb-0"><strong>Text Length:</strong>
+                            <span th:if="${resumeText != null}" th:text="${#strings.length(resumeText)}">0</span> characters
+                            <span th:unless="${resumeText != null}">0</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Content -->
+            <div th:if="${resumeText != null}" class="resume-text-container">
+                <span th:text="${resumeText}"></span>
+            </div>
+
+            <!-- No Content Message -->
+            <div th:unless="${resumeText != null}" class="text-center py-5">
+                <i class="bi bi-file-earmark-text display-1 text-muted mb-4"></i>
+                <h4>No Text Content Available</h4>
+                <p class="text-muted">The resume text has not been extracted yet or there was an error in processing.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div th:if="${resumeText != null}" class="mt-4">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" onclick="copyToClipboard()">
+                        <i class="bi bi-clipboard"></i> Copy Text
+                    </button>
+                    <button class="btn btn-outline-success" onclick="downloadText()">
+                        <i class="bi bi-download"></i> Download as TXT
+                    </button>
+                    <a th:href="@{'/hr/candidates/' + ${candidate.id} + '/resume/view'}" target="_blank"
+                       class="btn btn-outline-info">
+                        <i class="bi bi-eye"></i> View Original PDF
+                    </a>
+                    <a th:href="@{'/hr/candidates/' + ${candidate.id} + '/resume/download'}"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-download"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+            <div th:unless="${resumeText != null}" class="mt-4">
+                <a th:href="@{'/hr/candidates/' + ${candidate.id} + '/resume/view'}" target="_blank"
+                   class="btn btn-outline-info">
+                    <i class="bi bi-eye"></i> View PDF Instead
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills Highlight -->
+    <div th:if="${candidate.skills != null}" class="card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-tools"></i> Skills from Profile</h6>
+        </div>
+        <div class="card-body">
+            <div th:each="skill : ${#strings.listSplit(candidate.skills, ',')}">
+                <span class="badge bg-primary me-2 mb-2" style="font-size: 0.9rem;"
+                      th:text="${skill.trim()}"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Copy text to clipboard
+    function copyToClipboard() {
+        const text = document.querySelector('.resume-text-container')?.innerText;
+        if (text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Text copied to clipboard!');
+            }).catch(err => {
+                alert('Failed to copy text: ' + err);
+            });
+        } else {
+            alert('No text to copy');
+        }
+    }
+
+    // Download text as .txt file
+    function downloadText() {
+        const text = document.querySelector('.resume-text-container')?.innerText;
+        if (text) {
+            const candidateName = document.querySelector('h4').innerText.trim().replace(/\s+/g, '-');
+            const fileName = 'resume-' + candidateName + '-' + new Date().toISOString().slice(0, 10) + '.txt';
+
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', fileName);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        } else {
+            alert('No text to download');
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

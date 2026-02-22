@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Management - Candidate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <h2 class="mb-4"><i class="bi bi-file-earmark-text"></i> Resume Management</h2>
+
+    <div class="row">
+        <!-- Left Column - Current Resume -->
+        <div class="col-md-8">
+            <!-- Current Resume Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-pdf"></i> Current Resume</h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${currentResume != null}">
+                        <!-- Resume Info -->
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="bi bi-file-text"></i> File Details</h6>
+                                    <p class="mb-1"><strong>File Name:</strong> <span th:text="${currentResume.originalName}"></span></p>
+                                    <p class="mb-1"><strong>File Size:</strong> <span th:text="${currentResume.formattedFileSize}"></span></p>
+                                    <p class="mb-0"><strong>Uploaded:</strong> <span th:text="${#temporals.format(currentResume.uploadDate, 'dd MMM yyyy HH:mm')}"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="bi bi-cpu"></i> AI Status</h6>
+                                    <div th:if="${currentResume.mlProcessed}">
+                                        <span class="badge bg-success">AI Processed</span>
+                                        <p class="mb-1 mt-2"><strong>Score:</strong>
+                                            <span th:text="${#numbers.formatDecimal(currentResume.mlScore, 1, 1)}"></span></p>
+                                        <p class="mb-0"><strong>Confidence:</strong>
+                                            <span th:text="${#numbers.formatDecimal(currentResume.mlConfidence, 1, 1)}"></span>%</p>
+                                    </div>
+                                    <div th:unless="${currentResume.mlProcessed}">
+                                        <span class="badge bg-warning">Pending AI Analysis</span>
+                                        <p class="mt-2">Your resume is waiting for AI analysis...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <a th:href="@{/candidate/resume/view}" target="_blank" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a th:href="@{/candidate/resume/download}" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-download"></i> Download
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a th:href="@{/candidate/resume/text}" class="btn btn-outline-info w-100">
+                                    <i class="bi bi-file-text"></i> View Text
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100" data-bs-toggle="modal" data-bs-target="#updateResumeModal">
+                                    <i class="bi bi-arrow-repeat"></i> Replace
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Delete Button -->
+                        <div class="mt-4">
+                            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteResumeModal">
+                                <i class="bi bi-trash"></i> Delete Current Resume
+                            </button>
+                        </div>
+                    </div>
+
+                    <div th:unless="${currentResume != null}" class="text-center py-5">
+                        <i class="bi bi-file-earmark-text display-1 text-muted mb-4"></i>
+                        <h4>No Resume Uploaded</h4>
+                        <p class="text-muted mb-4">Upload your resume to get started with AI-powered job matching</p>
+                        <a th:href="@{/candidate/resume/upload}" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Upload Resume
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Version History -->
+            <div th:if="${allResumes != null and !allResumes.isEmpty()}" class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Version History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th>Version</th>
+                                <th>File Name</th>
+                                <th>Uploaded</th>
+                                <th>AI Score</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="resume : ${allResumes}">
+                                <td>
+                                    <span th:text="${resume.version}"></span>
+                                    <span th:if="${resume.current}" class="badge bg-success ms-2">Current</span>
+                                </td>
+                                <td th:text="${resume.originalName}"></td>
+                                <td th:text="${#temporals.format(resume.uploadDate, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td>
+                                    <span th:if="${resume.mlProcessed}" class="badge bg-primary"
+                                          th:text="${#numbers.formatDecimal(resume.mlScore, 1, 1)}"></span>
+                                    <span th:unless="${resume.mlProcessed}" class="badge bg-secondary">Pending</span>
+                                </td>
+                                <td>
+                                    <span th:if="${resume.mlProcessed}" class="badge bg-success">Processed</span>
+                                    <span th:unless="${resume.mlProcessed}" class="badge bg-warning">Pending</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a th:href="@{/candidate/resume/view/{id}(id=${resume.id})}" target="_blank"
+                                           class="btn btn-outline-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <button th:if="${!resume.current}"
+                                                class="btn btn-outline-success" title="Set as Current">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Stats and Tips (unchanged) -->
+        <div class="col-md-4">
+            <!-- AI Analysis Info -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-cpu"></i> AI Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div th:if="${currentResume != null and currentResume.mlProcessed}">
+                        <div class="text-center mb-3">
+                            <div class="display-6 fw-bold text-success" th:text="${#numbers.formatDecimal(currentResume.mlScore, 1, 1)}">0.0</div>
+                            <p class="text-muted">Match Score</p>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 th:style="'width: ' + ${currentResume.mlConfidence} + '%;'"
+                                 th:text="${#numbers.formatDecimal(currentResume.mlConfidence, 1, 1)} + '%'">
+                            </div>
+                        </div>
+                        <p class="small text-muted">AI confidence in analysis</p>
+                    </div>
+                    <div th:unless="${currentResume != null and currentResume.mlProcessed}">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-clock"></i> Resume not analyzed yet
+                        </div>
+                        <p class="small">Your resume will be analyzed by AI once uploaded</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Tips (unchanged) -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Resume Tips</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <small>Use PDF format for best results</small>
+                        </li>
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <small>Include relevant skills and experience</small>
+                        </li>
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <small>Keep file size under 5MB</small>
+                        </li>
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <small>Update regularly for better matches</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
+                    <div class="d-grid gap-2 mt-3">
+                        <a th:href="@{/candidate/profile}" class="btn btn-outline-primary">
+                            <i class="bi bi-person"></i> Update Profile
+                        </a>
+                        <a th:href="@{/candidate/resume/history}" class="btn btn-outline-info">
+                            <i class="bi bi-clock-history"></i> View History
+                        </a>
+                        <a th:href="@{/candidate/dashboard}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Resume Modal -->
+<div class="modal fade" id="updateResumeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Update Resume</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/candidate/resume/update}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Uploading a new resume will create a new version and trigger AI re-analysis.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="resumeFile" accept=".pdf" required>
+                        <small class="form-text text-muted">Only PDF files are accepted (Max 5MB)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Update Resume
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Resume Modal -->
+<div class="modal fade" id="deleteResumeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Delete Current Resume</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-octagon"></i> Are you sure?</h6>
+                    <p class="mb-0">This will permanently delete your current resume. Previous versions will remain.</p>
+                </div>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form th:action="@{/candidate/resume/delete}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Current Resume
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - AI Recruitment System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .register-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .register-header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-radius: 15px 15px 0 0;
+            color: white;
+        }
+        .register-btn {
+            background: linear-gradient(135deg, #20bf6b, #26de81);
+            border: none;
+            transition: transform 0.2s;
+        }
+        .register-btn:hover {
+            transform: translateY(-2px);
+        }
+        .form-control:focus {
+            border-color: #6c5ce7;
+            box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, 0.25);
+        }
+        .role-card {
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .role-card:hover {
+            transform: translateY(-3px);
+        }
+        .role-card.selected {
+            border-color: #6c5ce7;
+            background-color: rgba(108, 92, 231, 0.1);
+        }
+        .role-icon {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-9">
+            <div class="register-card">
+                <!-- Header -->
+                <div class="register-header text-center p-4">
+                    <h2><i class="bi bi-person-plus"></i> Join AI Recruitment System</h2>
+                    <p class="mb-0">Register and let AI match you with perfect opportunities</p>
+                </div>
+
+                <!-- Body -->
+                <div class="card-body p-4">
+                    <!-- Success/Error Messages -->
+                    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+                        <span th:text="${message}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+                        <span th:text="${error}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <form th:action="@{/auth/register}" method="post" onsubmit="return validateForm()">
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5><i class="bi bi-person-vcard"></i> Basic Information</h5>
+                                <p class="text-muted small">Enter your personal details</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-asterisk"></i> Required fields
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- First Name -->
+                            <div class="col-md-6">
+                                <label class="form-label">First Name *</label>
+                                <input type="text"
+                                       class="form-control"
+                                       name="firstName"
+                                       required
+                                       placeholder="Enter your first name">
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-6">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text"
+                                       class="form-control"
+                                       name="lastName"
+                                       required
+                                       placeholder="Enter your last name">
+                            </div>
+
+                            <!-- Username -->
+                            <div class="col-md-6">
+                                <label class="form-label">Username *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">@</span>
+                                    <input type="text"
+                                           class="form-control"
+                                           name="username"
+                                           required
+                                           placeholder="Choose a username">
+                                </div>
+                                <div class="form-text">This will be your login ID</div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6">
+                                <label class="form-label">Email *</label>
+                                <input type="email"
+                                       class="form-control"
+                                       name="email"
+                                       required
+                                       placeholder="Enter your email">
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number *</label>
+                                <input type="tel"
+                                       class="form-control"
+                                       name="phoneNumber"
+                                       pattern="[0-9]{10}"
+                                       title="Please enter exactly 10 digits"
+                                       maxlength="10"
+                                       required
+                                       placeholder="Enter 10-digit phone number">
+                                <div class="form-text">Format: 9876543210</div>
+                            </div>
+
+                            <!-- Role Selection -->
+                            <div class="col-md-6">
+                                <label class="form-label">Register as *</label>
+                                <input type="hidden" name="role" id="selectedRole" value="CANDIDATE">
+                                <div class="row g-2">
+                                    <!-- Candidate Role -->
+                                    <div class="col-4">
+                                        <div class="role-card text-center p-2 rounded selected"
+                                             onclick="selectRole('CANDIDATE')"
+                                             id="roleCandidate">
+                                            <div class="role-icon text-success">
+                                                <i class="bi bi-person-badge"></i>
+                                            </div>
+                                            <h6 class="mb-1">Candidate</h6>
+                                            <small class="text-muted">Job Seeker</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- HR Role -->
+                                    <div class="col-4">
+                                        <div class="role-card text-center p-2 rounded"
+                                             onclick="selectRole('HR')"
+                                             id="roleHR">
+                                            <div class="role-icon text-primary">
+                                                <i class="bi bi-briefcase"></i>
+                                            </div>
+                                            <h6 class="mb-1">HR</h6>
+                                            <small class="text-muted">Recruiter</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Admin Role (hidden - only for demo) -->
+                                    <div class="col-4">
+                                        <div class="role-card text-center p-2 rounded"
+                                             onclick="selectRole('ADMIN')"
+                                             id="roleAdmin">
+                                            <div class="role-icon text-danger">
+                                                <i class="bi bi-shield-check"></i>
+                                            </div>
+                                            <h6 class="mb-1">Admin</h6>
+                                            <small class="text-muted">System Admin</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Password Section -->
+                        <div class="row mt-5 mb-4">
+                            <div class="col-12">
+                                <h5><i class="bi bi-shield-lock"></i> Security</h5>
+                                <p class="text-muted small">Set your account password</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Password -->
+                            <div class="col-md-6">
+                                <label class="form-label">Password *</label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="password"
+                                       name="password"
+                                       required
+                                       placeholder="Enter password"
+                                       onkeyup="checkPasswordStrength()">
+                                <div class="progress mt-2" style="height: 5px;">
+                                    <div class="progress-bar" id="passwordStrength" role="progressbar"></div>
+                                </div>
+                                <div class="form-text" id="passwordFeedback"></div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="col-md-6">
+                                <label class="form-label">Confirm Password *</label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="confirmPassword"
+                                       name="confirmPassword"
+                                       required
+                                       placeholder="Confirm password"
+                                       onkeyup="checkPasswordMatch()">
+                                <div class="form-text" id="passwordMatch"></div>
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> *
+                            </label>
+                        </div>
+
+                        <!-- Submit and Cancel Buttons -->
+                        <div class="row mt-5">
+                            <div class="col-md-6">
+                                <a th:href="@{/auth/login}" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-arrow-left"></i> Back to Login
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn register-btn text-white w-100">
+                                    <i class="bi bi-person-plus"></i> Create Account
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-4">
+                <p class="text-white mb-0">
+                    Already have an account?
+                    <a th:href="@{/auth/login}" class="text-white fw-bold">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>AI Recruitment System - Terms of Service</h6>
+                <p>By registering, you agree that:</p>
+                <ul>
+                    <li>Your data will be processed by our AI algorithms for job matching</li>
+                    <li>Your profile information may be shared with potential employers</li>
+                    <li>You are responsible for maintaining the confidentiality of your account</li>
+                    <li>The system uses machine learning to analyze and match your profile</li>
+                    <li>You can delete your account and data at any time</li>
+                </ul>
+                <p>This is a student project for Software Engineering + AI demonstration.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Role selection
+    function selectRole(role) {
+        document.getElementById('selectedRole').value = role;
+
+        // Reset all cards
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+
+        // Select clicked card
+        document.getElementById('role' + role).classList.add('selected');
+    }
+
+    // Password strength checker
+    function checkPasswordStrength() {
+        const password = document.getElementById('password').value;
+        const strengthBar = document.getElementById('passwordStrength');
+        const feedback = document.getElementById('passwordFeedback');
+
+        let strength = 0;
+        let feedbackText = '';
+
+        if (password.length >= 8) strength += 25;
+        if (/[A-Z]/.test(password)) strength += 25;
+        if (/[0-9]/.test(password)) strength += 25;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+
+        strengthBar.style.width = strength + '%';
+
+        if (strength < 50) {
+            strengthBar.className = 'progress-bar bg-danger';
+            feedbackText = 'Weak password';
+        } else if (strength < 75) {
+            strengthBar.className = 'progress-bar bg-warning';
+            feedbackText = 'Moderate password';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            feedbackText = 'Strong password';
+        }
+
+        feedback.textContent = feedbackText;
+    }
+
+    // Password match checker
+    function checkPasswordMatch() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const matchText = document.getElementById('passwordMatch');
+
+        if (confirm.length === 0) {
+            matchText.textContent = '';
+            return;
+        }
+
+        if (password === confirm) {
+            matchText.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Passwords match</span>';
+        } else {
+            matchText.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Passwords do not match</span>';
+        }
+    }
+
+    // Form validation
+    function validateForm() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const terms = document.getElementById('terms').checked;
+
+        if (!terms) {
+            alert('You must agree to the terms and conditions');
+            return false;
+        }
+
+        if (password !== confirm) {
+            alert('Passwords do not match');
+            return false;
+        }
+
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters long');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default role
+        selectRole('CANDIDATE');
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

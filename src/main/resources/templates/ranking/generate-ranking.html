@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Generate Rankings - ' + ${job.title}">Generate Rankings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .weight-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .weight-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .total-weight {
+            font-size: 1.5rem;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .weight-valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .weight-invalid {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .preset-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+        .preset-card:hover {
+            transform: translateY(-3px);
+            border-color: #6c5ce7;
+        }
+        .preset-card.selected {
+            border-color: #20bf6b;
+            background-color: #f0fff0;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <!-- Header -->
+            <div class="mb-4">
+                <a th:href="@{/ranking/job/{id}(id=${job.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Rankings
+                </a>
+                <h2 class="mt-3"><i class="bi bi-plus-circle"></i> Generate Rankings</h2>
+                <h4 th:text="${job.title}">Job Title</h4>
+                <p class="text-muted" th:text="${job.department} + ' | ' + ${job.location}"></p>
+            </div>
+
+            <!-- Info Alert -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Rankings are generated based on skill match results. Each candidate will receive a weighted score
+                based on the importance you assign to different factors. Total weight must equal 100%.
+            </div>
+
+            <!-- Weight Presets -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-stars"></i> Quick Presets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card preset-card" onclick="setPreset('balanced')">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-balance display-4"></i>
+                                    <h6>Balanced</h6>
+                                    <small>Skills: 40% | Exp: 30% | Edu: 30%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card preset-card" onclick="setPreset('skill-focused')">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-tools display-4"></i>
+                                    <h6>Skill Focused</h6>
+                                    <small>Skills: 60% | Exp: 25% | Edu: 15%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card preset-card" onclick="setPreset('experience-focused')">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-briefcase display-4"></i>
+                                    <h6>Experience Focused</h6>
+                                    <small>Skills: 30% | Exp: 50% | Edu: 20%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weight Configuration Form -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Configure Ranking Weights</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/ranking/job/{id}/generate(id=${job.id})}" method="post" id="weightForm">
+
+                        <!-- Skills Weight -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="bi bi-tools text-primary"></i>
+                                <strong>Skills Weight</strong>
+                            </label>
+                            <input type="range" class="form-range weight-slider" id="skillsWeight"
+                                   name="skillsWeight" min="0" max="100" step="5" value="50"
+                                   oninput="updateWeight('skills', this.value)">
+                            <div class="d-flex justify-content-between">
+                                <span>0%</span>
+                                <span class="weight-value" id="skillsValue">50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Experience Weight -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="bi bi-briefcase text-warning"></i>
+                                <strong>Experience Weight</strong>
+                            </label>
+                            <input type="range" class="form-range weight-slider" id="experienceWeight"
+                                   name="experienceWeight" min="0" max="100" step="5" value="30"
+                                   oninput="updateWeight('experience', this.value)">
+                            <div class="d-flex justify-content-between">
+                                <span>0%</span>
+                                <span class="weight-value" id="experienceValue">30%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Education Weight -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="bi bi-mortarboard text-info"></i>
+                                <strong>Education Weight</strong>
+                            </label>
+                            <input type="range" class="form-range weight-slider" id="educationWeight"
+                                   name="educationWeight" min="0" max="100" step="5" value="20"
+                                   oninput="updateWeight('education', this.value)">
+                            <div class="d-flex justify-content-between">
+                                <span>0%</span>
+                                <span class="weight-value" id="educationValue">20%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Optional: Personality Weight -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includePersonality"
+                                       onchange="togglePersonality()">
+                                <label class="form-check-label">
+                                    <i class="bi bi-emoji-smile"></i> Include Personality Assessment
+                                </label>
+                            </div>
+                            <div id="personalitySection" style="display: none;">
+                                <input type="range" class="form-range weight-slider" id="personalityWeight"
+                                       name="personalityWeight" min="0" max="100" step="5" value="0"
+                                       oninput="updateWeight('personality', this.value)">
+                                <div class="d-flex justify-content-between">
+                                    <span>0%</span>
+                                    <span class="weight-value" id="personalityValue">0%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional: Cultural Fit Weight -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeCultural"
+                                       onchange="toggleCultural()">
+                                <label class="form-check-label">
+                                    <i class="bi bi-people"></i> Include Cultural Fit Assessment
+                                </label>
+                            </div>
+                            <div id="culturalSection" style="display: none;">
+                                <input type="range" class="form-range weight-slider" id="culturalWeight"
+                                       name="culturalFitWeight" min="0" max="100" step="5" value="0"
+                                       oninput="updateWeight('cultural', this.value)">
+                                <div class="d-flex justify-content-between">
+                                    <span>0%</span>
+                                    <span class="weight-value" id="culturalValue">0%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total Weight Display -->
+                        <div class="alert total-weight text-center mb-4" id="totalWeight">
+                            Total: 100%
+                        </div>
+
+                        <!-- Configuration Name (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label">Configuration Name (Optional)</label>
+                            <input type="text" class="form-control" name="configName"
+                                   placeholder="e.g., Technical Role Configuration">
+                        </div>
+
+                        <!-- Description (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" name="description" rows="2"
+                                      placeholder="Describe this weight configuration..."></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="generateBtn">
+                                <i class="bi bi-cpu"></i> Generate Rankings
+                            </button>
+                            <a th:href="@{/ranking/job/{id}(id=${job.id})}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Prerequisites Check -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check-circle"></i> Prerequisites</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        Skill match results available
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        Candidates with resumes
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-info-circle-fill text-info"></i>
+                        AI analysis completed for all candidates
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let skills = 50;
+    let experience = 30;
+    let education = 20;
+    let personality = 0;
+    let cultural = 0;
+
+    function updateWeight(type, value) {
+        switch(type) {
+            case 'skills':
+                skills = parseInt(value);
+                document.getElementById('skillsValue').textContent = value + '%';
+                break;
+            case 'experience':
+                experience = parseInt(value);
+                document.getElementById('experienceValue').textContent = value + '%';
+                break;
+            case 'education':
+                education = parseInt(value);
+                document.getElementById('educationValue').textContent = value + '%';
+                break;
+            case 'personality':
+                personality = parseInt(value);
+                document.getElementById('personalityValue').textContent = value + '%';
+                break;
+            case 'cultural':
+                cultural = parseInt(value);
+                document.getElementById('culturalValue').textContent = value + '%';
+                break;
+        }
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        const total = skills + experience + education + personality + cultural;
+        const totalElement = document.getElementById('totalWeight');
+        const generateBtn = document.getElementById('generateBtn');
+
+        if (total === 100) {
+            totalElement.className = 'alert total-weight text-center mb-4 weight-valid';
+            totalElement.innerHTML = '✅ Total: ' + total + '% (Valid)';
+            generateBtn.disabled = false;
+        } else {
+            totalElement.className = 'alert total-weight text-center mb-4 weight-invalid';
+            totalElement.innerHTML = '❌ Total: ' + total + '% (Must equal 100%)';
+            generateBtn.disabled = true;
+        }
+    }
+
+    function togglePersonality() {
+        const section = document.getElementById('personalitySection');
+        const checkbox = document.getElementById('includePersonality');
+
+        if (checkbox.checked) {
+            section.style.display = 'block';
+            personality = 10; // Default value
+            document.getElementById('personalityWeight').value = 10;
+            document.getElementById('personalityValue').textContent = '10%';
+
+            // Adjust other weights
+            skills = Math.max(0, skills - 5);
+            experience = Math.max(0, experience - 3);
+            education = Math.max(0, education - 2);
+
+            document.getElementById('skillsWeight').value = skills;
+            document.getElementById('experienceWeight').value = experience;
+            document.getElementById('educationWeight').value = education;
+
+            document.getElementById('skillsValue').textContent = skills + '%';
+            document.getElementById('experienceValue').textContent = experience + '%';
+            document.getElementById('educationValue').textContent = education + '%';
+        } else {
+            section.style.display = 'none';
+            personality = 0;
+            document.getElementById('personalityWeight').value = 0;
+            document.getElementById('personalityValue').textContent = '0%';
+
+            // Restore weights
+            skills = 50;
+            experience = 30;
+            education = 20;
+
+            document.getElementById('skillsWeight').value = skills;
+            document.getElementById('experienceWeight').value = experience;
+            document.getElementById('educationWeight').value = education;
+
+            document.getElementById('skillsValue').textContent = skills + '%';
+            document.getElementById('experienceValue').textContent = experience + '%';
+            document.getElementById('educationValue').textContent = education + '%';
+        }
+        calculateTotal();
+    }
+
+    function toggleCultural() {
+        const section = document.getElementById('culturalSection');
+        const checkbox = document.getElementById('includeCultural');
+
+        if (checkbox.checked) {
+            section.style.display = 'block';
+            cultural = 10; // Default value
+            document.getElementById('culturalWeight').value = 10;
+            document.getElementById('culturalValue').textContent = '10%';
+
+            // Adjust other weights
+            skills = Math.max(0, skills - 5);
+            experience = Math.max(0, experience - 3);
+            education = Math.max(0, education - 2);
+
+            document.getElementById('skillsWeight').value = skills;
+            document.getElementById('experienceWeight').value = experience;
+            document.getElementById('educationWeight').value = education;
+
+            document.getElementById('skillsValue').textContent = skills + '%';
+            document.getElementById('experienceValue').textContent = experience + '%';
+            document.getElementById('educationValue').textContent = education + '%';
+        } else {
+            section.style.display = 'none';
+            cultural = 0;
+            document.getElementById('culturalWeight').value = 0;
+            document.getElementById('culturalValue').textContent = '0%';
+
+            // Restore weights
+            skills = 50;
+            experience = 30;
+            education = 20;
+
+            document.getElementById('skillsWeight').value = skills;
+            document.getElementById('experienceWeight').value = experience;
+            document.getElementById('educationWeight').value = education;
+
+            document.getElementById('skillsValue').textContent = skills + '%';
+            document.getElementById('experienceValue').textContent = experience + '%';
+            document.getElementById('educationValue').textContent = education + '%';
+        }
+        calculateTotal();
+    }
+
+    function setPreset(type) {
+        // Reset optional sections
+        document.getElementById('includePersonality').checked = false;
+        document.getElementById('includeCultural').checked = false;
+        document.getElementById('personalitySection').style.display = 'none';
+        document.getElementById('culturalSection').style.display = 'none';
+        personality = 0;
+        cultural = 0;
+
+        switch(type) {
+            case 'balanced':
+                skills = 40;
+                experience = 30;
+                education = 30;
+                break;
+            case 'skill-focused':
+                skills = 60;
+                experience = 25;
+                education = 15;
+                break;
+            case 'experience-focused':
+                skills = 30;
+                experience = 50;
+                education = 20;
+                break;
+        }
+
+        // Update all inputs
+        document.getElementById('skillsWeight').value = skills;
+        document.getElementById('experienceWeight').value = experience;
+        document.getElementById('educationWeight').value = education;
+
+        document.getElementById('skillsValue').textContent = skills + '%';
+        document.getElementById('experienceValue').textContent = experience + '%';
+        document.getElementById('educationValue').textContent = education + '%';
+
+        // Highlight selected preset
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        event.currentTarget.classList.add('selected');
+
+        calculateTotal();
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotal();
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

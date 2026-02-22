@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Apply for ' + ${job.title}">Apply for Job</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .job-summary {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #6c5ce7;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            background-color: #e9ecef;
+            border-color: #a29bfe;
+        }
+        .upload-icon {
+            font-size: 4rem;
+            color: #6c5ce7;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <!-- Back Button -->
+            <div class="mb-4">
+                <a th:href="@{/jobs/view/{id}(id=${job.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Job Details
+                </a>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Job Summary -->
+            <div class="job-summary">
+                <h2 th:text="${job.title}">Software Engineer</h2>
+                <p class="mb-0">
+                    <i class="bi bi-building"></i> <span th:text="${job.department}">Engineering</span> |
+                    <i class="bi bi-geo-alt"></i> <span th:text="${job.location}">New York</span> |
+                    <i class="bi bi-clock"></i> <span th:text="${job.jobType.displayName}">Full Time</span>
+                </p>
+            </div>
+
+            <!-- Application Form - IMPORTANT: enctype is set correctly -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-send"></i> Submit Your Application</h4>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/jobs/apply/{id}(id=${job.id})}"
+                          method="post"
+                          enctype="multipart/form-data"  <!-- This is critical -->
+                    id="applicationForm">
+
+                    <!-- Resume Upload -->
+                    <div class="mb-4">
+                        <h5><i class="bi bi-file-earmark-pdf"></i> Upload Your Resume *</h5>
+                        <p class="text-muted">Please upload your resume in PDF format. It will be analyzed by our AI system.</p>
+
+                        <div class="upload-area" id="dropArea">
+                            <div class="upload-icon">
+                                <i class="bi bi-cloud-upload"></i>
+                            </div>
+                            <h5>Drag & drop your PDF resume here</h5>
+                            <p class="text-muted">or click to browse</p>
+                            <input type="file" id="resumeFile" name="resume" accept=".pdf" class="d-none" required>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('resumeFile').click()">
+                                <i class="bi bi-folder2-open"></i> Select Resume
+                            </button>
+                        </div>
+
+                        <!-- File Info -->
+                        <div id="fileInfo" class="alert alert-info mt-3" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong id="fileName"></strong><br>
+                                    <small id="fileSize" class="text-muted"></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Notes (Optional) -->
+                    <div class="mb-4">
+                        <h5><i class="bi bi-chat-text"></i> Additional Notes (Optional)</h5>
+                        <textarea class="form-control" name="notes" rows="3"
+                                  placeholder="Add any additional information or cover letter..."></textarea>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I confirm that the information provided is accurate and I have the right to work in this location.
+                        </label>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                            <i class="bi bi-send"></i> Submit Application
+                        </button>
+                    </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- AI Analysis Info -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-cpu"></i> AI Analysis Process</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <i class="bi bi-file-pdf fs-1 text-primary"></i>
+                            <h6>1. Upload Resume</h6>
+                            <small class="text-muted">Submit your PDF resume</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="bi bi-cpu fs-1 text-warning"></i>
+                            <h6>2. AI Analysis</h6>
+                            <small class="text-muted">System extracts and analyzes data</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="bi bi-trophy fs-1 text-success"></i>
+                            <h6>3. Get Ranked</h6>
+                            <small class="text-muted">Matches you with job requirements</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('resumeFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const submitBtn = document.getElementById('submitBtn');
+    const termsCheck = document.getElementById('terms');
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        dropArea.classList.add('dragover');
+    }
+
+    function unhighlight() {
+        dropArea.classList.remove('dragover');
+    }
+
+    // Handle dropped files
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    }
+
+    // Handle file input change
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handleFileSelect(this.files[0]);
+        }
+    });
+
+    // Handle file selection
+    function handleFileSelect(file) {
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            alert('Only PDF files are allowed');
+            clearFile();
+            return;
+        }
+
+        // Validate file size (5MB max)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            alert('File size must be less than 5MB');
+            clearFile();
+            return;
+        }
+
+        // Display file info
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileInfo.style.display = 'block';
+
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+
+        toggleSubmitButton();
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        fileInfo.style.display = 'none';
+        toggleSubmitButton();
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function toggleSubmitButton() {
+        submitBtn.disabled = !(fileInput.files.length > 0 && termsCheck.checked);
+    }
+
+    termsCheck.addEventListener('change', toggleSubmitButton);
+
+    // Form submission validation
+    document.getElementById('applicationForm').addEventListener('submit', function(e) {
+        if (fileInput.files.length === 0) {
+            e.preventDefault();
+            alert('Please select a resume file');
+            return false;
+        }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        clearFile();
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

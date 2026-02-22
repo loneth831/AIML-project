@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Rankings - ' + ${job.title}">Candidate Rankings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .ranking-row {
+            transition: background-color 0.2s;
+        }
+        .ranking-row:hover {
+            background-color: #f8f9fa;
+        }
+        .top-ranked {
+            border-left: 4px solid #ffd700;
+            background-color: #fff9e6;
+        }
+        .shortlisted {
+            border-left: 4px solid #20bf6b;
+            background-color: #f0fff0;
+        }
+        .rank-change-up {
+            color: #20bf6b;
+        }
+        .rank-change-down {
+            color: #fc5c65;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .progress-small {
+            height: 5px;
+            width: 60px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .filter-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/ranking/dashboard" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2><i class="bi bi-trophy"></i> Candidate Rankings</h2>
+            <h4 th:text="${job.title}">Job Title</h4>
+            <p class="text-muted">
+                <i class="bi bi-building"></i> <span th:text="${job.department}"></span> |
+                <i class="bi bi-geo-alt"></i> <span th:text="${job.location}"></span> |
+                <i class="bi bi-briefcase"></i> <span th:text="${job.jobType.displayName}"></span>
+            </p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/ranking/job/{id}/generate(id=${job.id})}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Generate
+            </a>
+            <a th:href="@{/ranking/job/{id}/recalculate(id=${job.id})}" class="btn btn-warning">
+                <i class="bi bi-arrow-repeat"></i> Recalculate
+            </a>
+            <a th:href="@{/ranking/job/{id}/export(id=${job.id})}" class="btn btn-primary">
+                <i class="bi bi-download"></i> Export
+            </a>
+            <button class="btn btn-info" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 th:text="${stats.totalRanked}">0</h3>
+                <p class="mb-0">Total</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: linear-gradient(135deg, #20bf6b, #26de81);">
+                <h3 th:text="${#numbers.formatDecimal(stats.averageScore, 1, 1)}">0.0</h3>
+                <p class="mb-0">Avg Score</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: linear-gradient(135deg, #fd9644, #fc5c7d);">
+                <h3 th:text="${stats.shortlisted}">0</h3>
+                <p class="mb-0">Shortlisted</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: linear-gradient(135deg, #a55eea, #8854d0);">
+                <h3 th:text="${stats.interviewed}">0</h3>
+                <p class="mb-0">Interviewed</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: linear-gradient(135deg, #20bf6b, #26de81);">
+                <h3 th:text="${stats.hired}">0</h3>
+                <p class="mb-0">Hired</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: linear-gradient(135deg, #fc5c65, #eb3b5a);">
+                <h3 th:text="${stats.excellentMatches}">0</h3>
+                <p class="mb-0">Excellent</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart"></i> Score Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-2 bg-success text-white rounded">
+                                <h5 th:text="${stats.excellentMatches}">0</h5>
+                                <small>Excellent (80-100)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-warning text-white rounded">
+                                <h5 th:text="${stats.goodMatches}">0</h5>
+                                <small>Good (60-79)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-danger text-white rounded">
+                                <h5 th:text="${stats.averageMatches}">0</h5>
+                                <small>Average (40-59)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-secondary text-white rounded">
+                                <h5 th:text="${stats.poorMatches}">0</h5>
+                                <small>Poor (0-39)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Weight Configuration -->
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-sliders fs-4 me-3"></i>
+            <div>
+                <strong>Current Ranking Weights:</strong><br>
+                <span class="badge bg-primary me-1">Skills: <span th:text="${currentWeights.skillsWeight} + '%'"></span></span>
+                <span class="badge bg-warning me-1">Experience: <span th:text="${currentWeights.experienceWeight} + '%'"></span></span>
+                <span class="badge bg-info me-1">Education: <span th:text="${currentWeights.educationWeight} + '%'"></span></span>
+                <span th:if="${currentWeights.personalityWeight > 0}" class="badge bg-secondary me-1">
+                    Personality: <span th:text="${currentWeights.personalityWeight} + '%'"></span>
+                </span>
+                <span th:if="${currentWeights.culturalFitWeight > 0}" class="badge bg-secondary">
+                    Cultural Fit: <span th:text="${currentWeights.culturalFitWeight} + '%'"></span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="row">
+            <div class="col-md-6">
+                <form method="get" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2"
+                           th:value="${search}" placeholder="Search by name or email...">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" onclick="filterShortlisted()">
+                        <i class="bi bi-star"></i> Shortlisted
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="filterTopRanked()">
+                        <i class="bi bi-trophy"></i> Top 5
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rankings Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ol"></i> Ranked Candidates</h5>
+            <span class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                <span th:text="${rankings.size()}"></span> candidates ranked
+            </span>
+        </div>
+        <div class="card-body">
+            <div th:if="${rankings.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-trophy display-1 text-muted mb-4"></i>
+                <h4>No Rankings Yet</h4>
+                <p class="text-muted mb-4">Generate rankings to see candidate rankings based on AI analysis.</p>
+                <a th:href="@{/ranking/job/{id}/generate(id=${job.id})}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Generate Rankings
+                </a>
+            </div>
+
+            <div th:unless="${rankings.isEmpty()}" class="table-responsive">
+                <table class="table table-hover" id="rankingsTable">
+                    <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Change</th>
+                        <th>Candidate</th>
+                        <th>Score</th>
+                        <th>Skills</th>
+                        <th>Exp</th>
+                        <th>Edu</th>
+                        <th>Shortlist</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="ranking : ${rankings}"
+                        th:classappend="${ranking.topRanked} ? 'top-ranked' : (${ranking.shortlisted} ? 'shortlisted' : '')"
+                        class="ranking-row"
+                        th:attr="data-score=${ranking.rankingScore}, data-shortlisted=${ranking.shortlisted}">
+
+                        <!-- Rank -->
+                        <td>
+                            <span class="badge bg-primary rounded-pill" style="font-size: 1rem;"
+                                  th:text="${ranking.rankPosition}">1</span>
+                        </td>
+
+                        <!-- Rank Change -->
+                        <td>
+                            <span th:if="${ranking.rankChange != null and ranking.rankChange != 0}"
+                                  th:classappend="${ranking.rankChange > 0} ? 'rank-change-up' : 'rank-change-down'">
+                                <i th:class="${ranking.rankChangeIcon}"></i>
+                                <span th:text="${ranking.rankChange > 0 ? '+' + ranking.rankChange : ranking.rankChange}"></span>
+                            </span>
+                            <span th:if="${ranking.rankChange == null or ranking.rankChange == 0}" class="text-muted">
+                                <i class="bi bi-dash-circle"></i>
+                            </span>
+                        </td>
+
+                        <!-- Candidate Info -->
+                        <td>
+                            <strong th:text="${ranking.candidate.fullName}">John Doe</strong><br>
+                            <small class="text-muted" th:text="${ranking.candidate.email}">john@example.com</small>
+                            <span th:if="${ranking.candidate.phone}" class="badge bg-light text-dark d-inline-block mt-1">
+                                <i class="bi bi-telephone"></i> <span th:text="${ranking.candidate.phone}"></span>
+                            </span>
+                        </td>
+
+                        <!-- Ranking Score -->
+                        <td>
+                            <span class="badge" th:classappend="${ranking.rankingScore >= 80} ? 'bg-success' :
+                                                               (${ranking.rankingScore >= 60} ? 'bg-warning' : 'bg-danger')"
+                                  th:text="${#numbers.formatDecimal(ranking.rankingScore, 1, 1)}">85.0</span>
+                            <br>
+                            <small class="text-muted" th:text="${#numbers.formatDecimal(ranking.percentile, 1, 1)} + 'th percentile'"></small>
+                        </td>
+
+                        <!-- Skills Score -->
+                        <td>
+                            <div class="progress progress-small">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     th:style="'width: ' + ${ranking.weightedSkillsScore} + '%;'"></div>
+                            </div>
+                            <small th:text="${#numbers.formatDecimal(ranking.weightedSkillsScore, 1, 1)}">50.0</small>
+                        </td>
+
+                        <!-- Experience Score -->
+                        <td>
+                            <div class="progress progress-small">
+                                <div class="progress-bar bg-warning" role="progressbar"
+                                     th:style="'width: ' + ${ranking.weightedExperienceScore} + '%;'"></div>
+                            </div>
+                            <small th:text="${#numbers.formatDecimal(ranking.weightedExperienceScore, 1, 1)}">30.0</small>
+                        </td>
+
+                        <!-- Education Score -->
+                        <td>
+                            <div class="progress progress-small">
+                                <div class="progress-bar bg-info" role="progressbar"
+                                     th:style="'width: ' + ${ranking.weightedEducationScore} + '%;'"></div>
+                            </div>
+                            <small th:text="${#numbers.formatDecimal(ranking.weightedEducationScore, 1, 1)}">20.0</small>
+                        </td>
+
+                        <!-- Shortlist Status -->
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       th:checked="${ranking.shortlisted}"
+                                       th:onclick="'toggleShortlist(' + ${ranking.id} + ', this.checked)'">
+                            </div>
+                        </td>
+
+                        <!-- Hiring Status -->
+                        <td>
+                            <select class="form-select form-select-sm"
+                                    th:onchange="'updateHiringStatus(' + ${ranking.id} + ', this.value)'">
+                                <option th:each="status : ${hiringStatuses}"
+                                        th:value="${status.name()}"
+                                        th:text="${status.displayName}"
+                                        th:selected="${ranking.hiringStatus != null and ranking.hiringStatus.name() == status.name()}">
+                                </option>
+                            </select>
+                        </td>
+
+                        <!-- Actions -->
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a th:href="@{/ranking/details/{id}(id=${ranking.id})}"
+                                   class="btn btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button class="btn btn-outline-success"
+                                        th:onclick="'scheduleInterview(' + ${ranking.id} + ')'"
+                                        title="Schedule Interview">
+                                    <i class="bi bi-calendar"></i>
+                                </button>
+                                <a th:href="@{/hr/candidates/{id}(id=${ranking.candidate.id})}"
+                                   class="btn btn-outline-info" title="View Candidate Profile">
+                                    <i class="bi bi-person"></i>
+                                </a>
+                                <button sec:authorize="hasRole('ADMIN')"
+                                        class="btn btn-outline-danger"
+                                        th:onclick="'deleteRanking(' + ${ranking.id} + ')'"
+                                        title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <!-- In the actions column, add this button -->
+                                <a th:href="@{/applications/job/{id}/candidate/{candidateId}(id=${job.id}, candidateId=${ranking.candidate.id})}"
+                                   class="btn btn-sm btn-outline-info" title="View Application">
+                                    <i class="bi bi-send"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-3">
+        <span class="badge" style="background-color: #fff9e6; color: #000; border-left: 4px solid #ffd700;"> Top 5 Ranked</span>
+        <span class="badge ms-2" style="background-color: #f0fff0; color: #000; border-left: 4px solid #20bf6b;"> Shortlisted</span>
+        <span class="badge bg-success ms-2">Excellent (80+)</span>
+        <span class="badge bg-warning ms-2">Good (60-79)</span>
+        <span class="badge bg-danger ms-2">Average/Below (below 60)</span>
+    </div>
+</div>
+
+<script>
+    const jobId = [[${job.id}]];
+
+    function toggleShortlist(rankingId, shortlisted) {
+        const notes = shortlisted ? prompt('Add shortlist notes (optional):', '') : '';
+        fetch(`/ranking/${rankingId}/shortlist?shortlisted=${shortlisted}&notes=${encodeURIComponent(notes || '')}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                window.location.reload();
+            }
+        });
+    }
+
+    function updateHiringStatus(rankingId, status) {
+        const notes = prompt('Add notes for this status change (optional):', '');
+        fetch(`/ranking/${rankingId}/hiring-status?status=${status}&notes=${encodeURIComponent(notes || '')}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                window.location.reload();
+            }
+        });
+    }
+
+    function scheduleInterview(rankingId) {
+        const dateTime = prompt('Enter interview date and time (YYYY-MM-DD HH:MM):',
+            new Date().toISOString().slice(0, 16).replace('T', ' '));
+        if (dateTime) {
+            const notes = prompt('Add interview notes (optional):', '');
+            const interviewDate = new Date(dateTime).toISOString();
+
+            fetch(`/ranking/${rankingId}/schedule-interview?interviewDate=${interviewDate}&notes=${encodeURIComponent(notes || '')}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    }
+
+    function deleteRanking(rankingId) {
+        if (confirm('Are you sure you want to delete this ranking entry? This action cannot be undone.')) {
+            fetch(`/ranking/${rankingId}/delete?jobId=${jobId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    }
+
+    function filterShortlisted() {
+        const rows = document.querySelectorAll('#rankingsTable tbody tr');
+        rows.forEach(row => {
+            const isShortlisted = row.getAttribute('data-shortlisted') === 'true';
+            row.style.display = isShortlisted ? '' : 'none';
+        });
+    }
+
+    function filterTopRanked() {
+        const rows = document.querySelectorAll('#rankingsTable tbody tr');
+        rows.forEach((row, index) => {
+            row.style.display = index < 5 ? '' : 'none';
+        });
+    }
+
+    function clearFilters() {
+        const rows = document.querySelectorAll('#rankingsTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

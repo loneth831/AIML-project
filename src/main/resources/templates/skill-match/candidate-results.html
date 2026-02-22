@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Match Results - ' + ${candidate.fullName}">Candidate Match Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a th:href="@{/hr/candidates/{id}(id=${candidate.id})}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Candidate
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-graph-up"></i> Match Results for <span th:text="${candidate.fullName}"></span></h4>
+        </div>
+        <div class="card-body">
+            <p><strong>Email:</strong> <span th:text="${candidate.email}"></span></p>
+            <p><strong>Total Matches:</strong> <span th:text="${results.size()}"></span></p>
+        </div>
+    </div>
+
+    <!-- Results List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-ol"></i> Job Matches</h5>
+        </div>
+        <div class="card-body">
+            <div th:if="${results.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-graph-up display-1 text-muted mb-4"></i>
+                <h4>No Match Results Yet</h4>
+                <p class="text-muted">This candidate hasn't been matched with any jobs yet.</p>
+            </div>
+
+            <div th:unless="${results.isEmpty()}" class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Department</th>
+                        <th>Match Date</th>
+                        <th>Overall Score</th>
+                        <th>Match Level</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="result : ${results}">
+                        <td th:text="${result.job.title}">Software Engineer</td>
+                        <td th:text="${result.job.department}">Engineering</td>
+                        <td th:text="${#temporals.format(result.matchDate, 'dd/MM/yyyy')}">01/01/2024</td>
+                        <td>
+                            <span class="badge" th:classappend="${result.getScoreColorClass()}"
+                                  th:text="${#numbers.formatDecimal(result.overallScore, 1, 1)} + '%'">85%</span>
+                        </td>
+                        <td th:text="${result.matchLevel}">Excellent Match</td>
+                        <td>
+                            <a th:href="@{/skill-match/result/{id}(id=${result.id})}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View Details
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

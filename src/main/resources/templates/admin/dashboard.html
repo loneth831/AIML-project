@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AI Recruitment System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .stats-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .quick-actions .card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .quick-actions .card:hover {
+            transform: translateY(-3px);
+        }
+        .ai-badge {
+            background: linear-gradient(135deg, #20bf6b, #26de81);
+            color: white;
+        }
+        .ml-processed {
+            border-left: 4px solid #20bf6b;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Admin Dashboard</h2>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" th:text="${totalUsers}">0</div>
+                <div>Total Users</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #20bf6b, #26de81);">
+                <div class="stats-number" th:text="${totalCandidates}">0</div>
+                <div>Total Candidates</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #fd9644, #fc5c7d);">
+                <div class="stats-number" th:text="${totalHR}">0</div>
+                <div>HR Users</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #a55eea, #8854d0);">
+                <div class="stats-number" th:text="${mlProcessed}">0</div>
+                <div>AI Processed</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h4>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/admin/users}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-people" style="font-size: 2rem; color: #6c5ce7;"></i>
+                        <h6>Manage Users</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/admin/ai-management}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-cpu" style="font-size: 2rem; color: #20bf6b;"></i>
+                        <h6>AI Management</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/admin/users?role=candidate}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-person-badge" style="font-size: 2rem; color: #fd9644;"></i>
+                        <h6>View Candidates</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/admin/users?role=hr}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-briefcase" style="font-size: 2rem; color: #8854d0;"></i>
+                        <h6>View HR</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/admin/users/new}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-person-plus" style="font-size: 2rem; color: #ff6b6b;"></i>
+                        <h6>Add User</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 mb-3">
+            <a th:href="@{/hr/dashboard}" class="text-decoration-none">
+                <div class="card text-center quick-actions">
+                    <div class="card-body">
+                        <i class="bi bi-eye" style="font-size: 2rem; color: #1e90ff;"></i>
+                        <h6>HR View</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- AI Processing Status -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-cpu"></i> AI Processing Status</h5>
+                    <span class="badge ai-badge" th:text="${mlProcessed} + '/' + ${totalCandidates}">0/0</span>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             th:style="'width: ' + ${totalCandidates > 0 ? (mlProcessed * 100 / totalCandidates) : 0} + '%;'"
+                             th:text="${totalCandidates > 0 ? (mlProcessed * 100 / totalCandidates) : 0} + '%'">
+                        </div>
+                    </div>
+                    <p class="mb-2"><i class="bi bi-check-circle text-success"></i> AI Processed: <span th:text="${mlProcessed}">0</span></p>
+                    <p class="mb-0"><i class="bi bi-clock text-warning"></i> Pending: <span th:text="${totalCandidates - mlProcessed}">0</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-activity"></i> System Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-person-check text-success me-2"></i>
+                                <span>Active Candidates</span>
+                            </div>
+                            <span class="badge bg-success" th:text="${activeCandidates}">0</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-people text-primary me-2"></i>
+                                <span>Total HR Users</span>
+                            </div>
+                            <span class="badge bg-primary" th:text="${totalHR}">0</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-database text-info me-2"></i>
+                                <span>Total Users</span>
+                            </div>
+                            <span class="badge bg-info" th:text="${totalUsers}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

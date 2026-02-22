@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Edit ' + ${job.title}">Edit Job</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0"><i class="bi bi-pencil"></i> Edit Job: <span th:text="${job.title}"></span></h4>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/jobs/edit/{id}(id=${job.id})}" method="post">
+                        <!-- Hidden fields -->
+                        <input type="hidden" name="id" th:value="${job.id}">
+                        <input type="hidden" name="postedBy" th:value="${job.postedBy.id}">
+                        <input type="hidden" name="postedDate" th:value="${job.postedDate}">
+
+                        <!-- Basic Information -->
+                        <div class="mb-4">
+                            <h5>Basic Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label">Job Title</label>
+                                    <input type="text" class="form-control" name="title"
+                                           th:value="${job.title}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Department</label>
+                                    <select name="department" class="form-select" required>
+                                        <option value="Engineering" th:selected="${job.department == 'Engineering'}">Engineering</option>
+                                        <option value="Sales" th:selected="${job.department == 'Sales'}">Sales</option>
+                                        <option value="Marketing" th:selected="${job.department == 'Marketing'}">Marketing</option>
+                                        <option value="HR" th:selected="${job.department == 'HR'}">Human Resources</option>
+                                        <option value="Finance" th:selected="${job.department == 'Finance'}">Finance</option>
+                                        <option value="Operations" th:selected="${job.department == 'Operations'}">Operations</option>
+                                        <option value="IT" th:selected="${job.department == 'IT'}">IT</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Location</label>
+                                    <input type="text" class="form-control" name="location"
+                                           th:value="${job.location}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Job Type</label>
+                                    <select name="jobType" class="form-select" required>
+                                        <option th:each="type : ${jobTypes}"
+                                                th:value="${type.name()}"
+                                                th:text="${type.displayName}"
+                                                th:selected="${job.jobType.name() == type.name()}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Vacancies</label>
+                                    <input type="number" class="form-control" name="vacancies"
+                                           th:value="${job.vacancies}" required min="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Expiry Date</label>
+                                    <input type="datetime-local" class="form-control" name="expiryDateStr"
+                                           th:value="${job.expiryDate != null} ? ${#temporals.format(job.expiryDate, 'yyyy-MM-dd') + 'T' + #temporals.format(job.expiryDate, 'HH:mm')} : ''">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compensation -->
+                        <div class="mb-4">
+                            <h5>Compensation</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Min Salary</label>
+                                    <input type="number" class="form-control" name="minSalary"
+                                           th:value="${job.minSalary}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Max Salary</label>
+                                    <input type="number" class="form-control" name="maxSalary"
+                                           th:value="${job.maxSalary}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requirements -->
+                        <div class="mb-4">
+                            <h5>Requirements</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Experience Required</label>
+                                    <input type="text" class="form-control" name="experienceRequired"
+                                           th:value="${job.experienceRequired}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Education Requirement</label>
+                                    <input type="text" class="form-control" name="educationRequirement"
+                                           th:value="${job.educationRequirement}" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Required Skills</label>
+                                    <textarea class="form-control" name="requiredSkills" rows="3"
+                                              required th:text="${job.requiredSkills}"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Preferred Skills</label>
+                                    <textarea class="form-control" name="preferredSkills" rows="2"
+                                              th:text="${job.preferredSkills}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <h5>Job Description</h5>
+                            <textarea class="form-control" name="description" rows="8"
+                                      required th:text="${job.description}"></textarea>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="active"
+                                       th:checked="${job.active}" id="activeCheck">
+                                <label class="form-check-label" for="activeCheck">
+                                    Active Job (visible to candidates)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save"></i> Update Job
+                            </button>
+                            <a href="/jobs/manage" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Details - HR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .candidate-header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        .ai-score {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .skill-badge {
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Candidate Header -->
+    <div class="card mb-4">
+        <div class="candidate-header p-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2><i class="bi bi-person-badge"></i> <span th:text="${candidate.fullName}">Candidate Name</span></h2>
+                    <p class="mb-0" th:text="${candidate.email}">email@example.com</p>
+                </div>
+                <div class="text-end">
+                    <div th:if="${currentResume != null and currentResume.mlProcessed}" class="ai-score text-light">
+                        <span th:text="${#numbers.formatDecimal(currentResume.mlScore, 1, 1)}">0.0</span>
+                    </div>
+                    <div th:unless="${currentResume != null and currentResume.mlProcessed}">
+                        <span class="badge bg-warning" style="font-size: 1.2rem;">
+                            <i class="bi bi-clock"></i> AI Analysis Pending
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Candidate Actions -->
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary me-2">
+                        <i class="bi bi-person"></i> Candidate
+                    </span>
+                    <span th:if="${candidate.active}" class="badge bg-success me-2">
+                        <i class="bi bi-check-circle"></i> Active
+                    </span>
+                    <span th:unless="${candidate.active}" class="badge bg-danger me-2">
+                        <i class="bi bi-x-circle"></i> Inactive
+                    </span>
+                    <span class="text-muted">
+                        Member since: <span th:text="${#temporals.format(candidate.createdAt, 'dd MMMM yyyy')}"></span>
+                    </span>
+                </div>
+                <div>
+                    <form th:action="@{/hr/candidates/{id}/process-ai(id=${candidate.id})}" method="post" class="d-inline">
+                        <input type="hidden" name="forceReprocess" value="false">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-cpu"></i> Process with AI
+                        </button>
+                    </form>
+                    <a th:href="@{/hr/candidates}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Candidates
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Personal & Professional Info -->
+        <div class="col-md-8">
+            <!-- Personal Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-vcard"></i> Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Full Name:</strong></td>
+                                    <td th:text="${candidate.fullName}"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td th:text="${candidate.email}"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Phone:</strong></td>
+                                    <td th:text="${candidate.phone != null ? candidate.phone : 'Not provided'}"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Username:</strong></td>
+                                    <td th:text="${candidate.username}"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Account Status:</strong></td>
+                                    <td>
+                                        <span th:if="${candidate.active}" class="badge bg-success">Active</span>
+                                        <span th:unless="${candidate.active}" class="badge bg-danger">Inactive</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>AI Processed:</strong></td>
+                                    <td>
+                                        <span th:if="${currentResume != null and currentResume.mlProcessed}" class="badge bg-success">Yes</span>
+                                        <span th:unless="${currentResume != null and currentResume.mlProcessed}" class="badge bg-warning">No</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Member Since:</strong></td>
+                                    <td th:text="${#temporals.format(candidate.createdAt, 'dd MMMM yyyy')}"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Updated:</strong></td>
+                                    <td th:text="${#temporals.format(candidate.updatedAt, 'dd MMMM yyyy HH:mm')}"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-briefcase"></i> Professional Information</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Skills -->
+                    <div class="mb-4">
+                        <h6><i class="bi bi-tools"></i> Skills</h6>
+                        <div th:if="${candidate.skills != null and !candidate.skills.isEmpty()}">
+                            <div th:each="skill : ${#strings.listSplit(candidate.skills, ',')}">
+                                <span class="badge bg-primary skill-badge" th:text="${skill.trim()}">Skill</span>
+                            </div>
+                        </div>
+                        <div th:unless="${candidate.skills != null and !candidate.skills.isEmpty()}">
+                            <p class="text-muted">No skills listed</p>
+                        </div>
+                    </div>
+
+                    <!-- Experience & Education -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-calendar-check"></i> Experience</h6>
+                            <p th:if="${candidate.experienceYears != null}"
+                               th:text="${candidate.experienceYears} + ' years of experience'">
+                            </p>
+                            <p th:unless="${candidate.experienceYears != null}" class="text-muted">
+                                Experience not specified
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-mortarboard"></i> Education</h6>
+                            <p th:if="${candidate.education != null}" th:text="${candidate.education}"></p>
+                            <p th:unless="${candidate.education != null}" class="text-muted">
+                                Education not specified
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Applications Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-briefcase"></i> Job Applications</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                            <th>AI Match Score</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="app : ${candidateApplications}">
+                            <td th:text="${app.job.title}">Software Engineer</td>
+                            <td th:text="${#temporals.format(app.appliedDate, 'dd MMM yyyy')}">01 Jan 2024</td>
+                            <td>
+                        <span class="badge" th:classappend="${app.statusBadgeClass}"
+                              th:text="${app.status.displayName}">Pending</span>
+                            </td>
+                            <td>
+                        <span th:if="${app.matchScore != null}"
+                              class="badge"
+                              th:classappend="${app.matchScore >= 80 ? 'bg-success' : (app.matchScore >= 60 ? 'bg-warning' : 'bg-danger')}"
+                              th:text="${#numbers.formatDecimal(app.matchScore, 1, 1)} + '%'">
+                            85%
+                        </span>
+                                <span th:unless="${app.matchScore != null}" class="badge bg-secondary">N/A</span>
+                            </td>
+                            <td>
+                                <a th:href="@{/hr/applications/{id}(id=${app.id})}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - AI Analysis & Actions -->
+        <div class="col-md-4">
+            <!-- AI Analysis Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-cpu"></i> AI Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${currentResume != null and currentResume.mlProcessed}">
+                        <div class="text-center mb-4">
+                            <div class="ai-score text-success" th:text="${#numbers.formatDecimal(currentResume.mlScore, 1, 1)}">0.0</div>
+                            <p class="text-muted">AI Match Score</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">AI Confidence Score:</label>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-info" role="progressbar"
+                                     th:style="'width: ' + ${currentResume.mlConfidence} + '%;'"
+                                     th:text="${#numbers.formatDecimal(currentResume.mlConfidence, 1, 1)} + '%'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Match Score:</label>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar"
+                                     th:classappend="${currentResume.mlScore >= 80} ? 'bg-success' :
+                     (${currentResume.mlScore >= 60 and currentResume.mlScore < 80} ? 'bg-warning' :
+                     (${currentResume.mlScore < 60} ? 'bg-danger' : ''))"
+                                     th:style="'width: ' + ${currentResume.mlScore} + '%;'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            This score is based on the candidate's skills, experience, and education match.
+                        </div>
+                    </div>
+
+                    <div th:unless="${currentResume != null and currentResume.mlProcessed}">
+                        <div class="text-center py-4">
+                            <i class="bi bi-cpu display-4 text-muted"></i>
+                            <h4 class="mt-3">AI Analysis Pending</h4>
+                            <p class="text-muted">This candidate hasn't been processed by AI yet.</p>
+                            <form th:action="@{/hr/candidates/{id}/process-ai(id=${candidate.id})}" method="post">
+                                <input type="hidden" name="forceReprocess" value="false">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cpu"></i> Run AI Analysis
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <!-- Force Reprocess with AI -->
+                        <form th:action="@{/hr/candidates/{id}/process-ai(id=${candidate.id})}" method="post">
+                            <input type="hidden" name="forceReprocess" value="true">
+                            <button type="submit" class="btn btn-warning w-100 mb-2">
+                                <i class="bi bi-arrow-repeat"></i> Force Reprocess AI
+                            </button>
+                        </form>
+
+                        <!-- Contact Candidate -->
+                        <button class="btn btn-outline-primary w-100 mb-2 contact-btn"
+                                th:data-email="${candidate.email}"
+                                th:data-phone="${candidate.phone != null ? candidate.phone : ''}">
+                            <i class="bi bi-envelope"></i> Contact Candidate
+                        </button>
+
+                        <!-- Shortlist Candidate (you can implement this functionality) -->
+                        <button class="btn btn-success w-100 mb-2" onclick="shortlistCandidate(${candidate.id})">
+                            <i class="bi bi-check-circle"></i> Shortlist for Interview
+                        </button>
+
+                        <!-- Download Resume - Updated to use currentResume -->
+                        <a th:if="${currentResume != null}"
+                           th:href="@{/hr/candidates/{id}/resume/download(id=${candidate.id})}"
+                           class="btn btn-outline-secondary w-100 mb-2">
+                            <i class="bi bi-download"></i> Download Resume
+                        </a>
+                        <button th:unless="${currentResume != null}"
+                                class="btn btn-outline-secondary w-100 mb-2" disabled>
+                            <i class="bi bi-download"></i> No Resume Uploaded
+                        </button>
+
+                        <!-- View Resume Text -->
+                        <a th:if="${currentResume != null}"
+                           th:href="@{/hr/candidates/{id}/resume/text(id=${candidate.id})}"
+                           class="btn btn-outline-info w-100 mb-2">
+                            <i class="bi bi-file-text"></i> View Extracted Text
+                        </a>
+                        <a th:href="@{/skill-match/candidate/{id}(id=${candidate.id})}"
+                           class="btn btn-outline-info w-100 mb-2">
+                            <i class="bi bi-graph-up"></i> View All Match Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Version History (if available) -->
+            <div class="card mt-4" th:if="${allResumes != null and !allResumes.isEmpty()}">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Resume Versions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div th:each="resume : ${allResumes}"
+                             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <small>Version <span th:text="${resume.version}"></span></small>
+                                <br>
+                                <small class="text-muted" th:text="${#temporals.format(resume.uploadDate, 'dd MMM yyyy')}"></small>
+                            </div>
+                            <div>
+                                <span th:if="${resume.current}" class="badge bg-success">Current</span>
+                                <span th:if="${resume.mlProcessed}" class="badge bg-info"
+                                      th:text="${#numbers.formatDecimal(resume.mlScore, 1, 1)}"></span>
+                                <a th:href="@{/hr/candidates/{id}/resume/view/{resumeId}(id=${candidate.id}, resumeId=${resume.id})}"
+                                   class="btn btn-sm btn-outline-primary ms-2" target="_blank">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function contactCandidate(email, phone) {
+        let message = `Contact Information:\n`;
+        message += `Email: ${email}\n`;
+        if (phone && phone.trim() !== '') {
+            message += `Phone: ${phone}\n`;
+        }
+        message += `\nOptions:\n1. Copy Email\n2. Send Email`;
+        if (phone && phone.trim() !== '') {
+            message += `\n3. Call`;
+        }
+
+        const choice = prompt(message + '\n\nEnter your choice:');
+        if (choice === '1') {
+            navigator.clipboard.writeText(email).then(() => {
+                alert('Email copied to clipboard!');
+            });
+        } else if (choice === '2') {
+            window.location.href = `mailto:${email}`;
+        } else if (choice === '3' && phone && phone.trim() !== '') {
+            window.location.href = `tel:${phone}`;
+        }
+    }
+
+    function shortlistCandidate(candidateId) {
+        // Implement shortlist functionality
+        alert('Shortlist functionality to be implemented');
+    }
+
+    // Add event listener for contact buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.contact-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const email = this.getAttribute('data-email');
+                const phone = this.getAttribute('data-phone');
+                contactCandidate(email, phone);
+            });
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

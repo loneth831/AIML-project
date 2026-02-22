@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Skill Match Results - ' + ${job.title}">Skill Match Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .result-card {
+            transition: transform 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .score-excellent {
+            border-left-color: #20bf6b;
+        }
+        .score-good {
+            border-left-color: #fd9644;
+        }
+        .score-average {
+            border-left-color: #fa8231;
+        }
+        .score-poor {
+            border-left-color: #fc5c65;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/jobs/manage" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Jobs
+            </a>
+            <h2><i class="bi bi-graph-up"></i> Skill Match Results</h2>
+            <h4 th:text="${job.title}">Job Title</h4>
+            <p class="text-muted">
+                <i class="bi bi-building"></i> <span th:text="${job.department}"></span> |
+                <i class="bi bi-geo-alt"></i> <span th:text="${job.location}"></span>
+            </p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/skill-match/job/{jobId}/export(jobId=${job.id})}" class="btn btn-success">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#processAllModal">
+                <i class="bi bi-cpu"></i> Process All
+            </button>
+            <button class="btn btn-warning" onclick="updateRanking()">
+                <i class="bi bi-arrow-repeat"></i> Update Ranking
+            </button>
+            <!-- Safe application link in header -->
+            <a th:if="${result != null and result.candidate != null}"
+               th:href="@{/applications/job/{id}/candidate/{candidateId}(id=${job.id}, candidateId=${result.candidate.id})}"
+               class="btn btn-sm btn-outline-info" title="View Application">
+                <i class="bi bi-send"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 th:text="${stats.totalMatches}">0</h3>
+                <p class="mb-0">Total Matches</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #20bf6b, #26de81);">
+                <h3 th:text="${#numbers.formatDecimal(stats.averageScore, 1, 1)}">0.0</h3>
+                <p class="mb-0">Average Score</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #fd9644, #fc5c7d);">
+                <h3 th:text="${#numbers.formatDecimal(stats.maxScore, 1, 1)}">0.0</h3>
+                <p class="mb-0">Highest Score</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #a55eea, #8854d0);">
+                <h3 th:text="${stats.excellentMatches}">0</h3>
+                <p class="mb-0">Excellent Matches</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Score Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3 bg-success text-white rounded">
+                                <h4 th:text="${stats.excellentMatches}">0</h4>
+                                <p class="mb-0">Excellent (80-100)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-warning text-white rounded">
+                                <h4 th:text="${stats.goodMatches}">0</h4>
+                                <p class="mb-0">Good (60-79)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-danger text-white rounded">
+                                <h4 th:text="${stats.averageMatches}">0</h4>
+                                <p class="mb-0">Average (40-59)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-secondary text-white rounded">
+                                <h4 th:text="${stats.poorMatches}">0</h4>
+                                <p class="mb-0">Poor (0-39)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ol"></i> Ranked Candidates</h5>
+            <span class="text-muted">Sorted by AI Match Score</span>
+        </div>
+        <div class="card-body">
+            <div th:if="${results.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-graph-up display-1 text-muted mb-4"></i>
+                <h4>No Match Results Yet</h4>
+                <p class="text-muted mb-4">Process candidates with AI to see skill match results.</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#processAllModal">
+                    <i class="bi bi-cpu"></i> Process All Candidates
+                </button>
+            </div>
+
+            <div th:unless="${results.isEmpty()}" class="row">
+                <div th:each="result, stat : ${results}" class="col-12 mb-3">
+                    <div th:if="${result != null}" class="card result-card"
+                         th:classappend="${result.overallScore >= 80} ? 'score-excellent' :
+                                    (${result.overallScore >= 60} ? 'score-good' :
+                                    (${result.overallScore >= 40} ? 'score-average' : 'score-poor'))">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-1 text-center">
+                                <span class="badge bg-primary rounded-pill" style="font-size: 1.5rem;">
+                                    <span th:text="${stat.index + 1}">1</span>
+                                </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <!-- Check if candidate exists -->
+                                    <div th:if="${result.candidate != null}">
+                                        <h5 class="mb-1" th:text="${result.candidate.fullName}">John Doe</h5>
+                                        <p class="mb-1 text-muted" th:text="${result.candidate.email}">john@example.com</p>
+                                        <small>
+                                            <i class="bi bi-briefcase"></i>
+                                            <span th:text="${result.candidate.experienceYears != null ?
+                                            result.candidate.experienceYears + ' years' : 'N/A'}"></span>
+                                        </small>
+                                    </div>
+                                    <div th:unless="${result.candidate != null}" class="text-muted">
+                                        <h5 class="mb-1">Candidate Unavailable</h5>
+                                        <p class="mb-1">(Account may have been deleted)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="text-center">
+                                        <div class="display-6 fw-bold" th:text="${#numbers.formatDecimal(result.overallScore, 1, 1)}">85.0</div>
+                                        <span class="badge" th:classappend="${result.getScoreColorClass()}"
+                                              th:text="${result.matchLevel}">Excellent Match</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-2">
+                                        <small>Skills: </small>
+                                        <span class="badge bg-success me-1" th:if="${result.matchedSkillsCount > 0}"
+                                              th:text="'✓ ' + ${result.matchedSkillsCount} + ' matched'"></span>
+                                        <span class="badge bg-danger me-1" th:if="${result.missingSkillsCount > 0}"
+                                              th:text="'✗ ' + ${result.missingSkillsCount} + ' missing'"></span>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 5px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             th:style="'width: ' + ${result.skillsScore} + '%;'"
+                                             th:title="'Skills: ' + ${#numbers.formatDecimal(result.skillsScore, 1, 1)} + '%'">
+                                        </div>
+                                        <div class="progress-bar bg-warning" role="progressbar"
+                                             th:style="'width: ' + ${result.experienceScore} + '%;'"
+                                             th:title="'Experience: ' + ${#numbers.formatDecimal(result.experienceScore, 1, 1)} + '%'">
+                                        </div>
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                             th:style="'width: ' + ${result.educationScore} + '%;'"
+                                             th:title="'Education: ' + ${#numbers.formatDecimal(result.educationScore, 1, 1)} + '%'">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-cpu"></i> AI Confidence:
+                                        <span th:text="${#numbers.formatDecimal(result.aiConfidence, 1, 1)}">95.0</span>%
+                                    </small>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <a th:href="@{/skill-match/result/{id}(id=${result.id})}"
+                                       class="btn btn-outline-primary btn-sm mb-1 w-100">
+                                        <i class="bi bi-eye"></i> Details
+                                    </a>
+                                    <button class="btn btn-outline-warning btn-sm w-100"
+                                            onclick="recalculateScore(${result.id})">
+                                        <i class="bi bi-arrow-repeat"></i> Recalc
+                                    </button>
+                                    <button sec:authorize="hasRole('ADMIN')"
+                                            class="btn btn-outline-danger btn-sm w-100 mt-1"
+                                            onclick="deleteResult(${result.id})">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                    <!-- Safe application link -->
+                                    <a th:if="${result.candidate != null}"
+                                       th:href="@{/applications/job/{id}/candidate/{candidateId}(id=${job.id}, candidateId=${result.candidate.id})}"
+                                       class="btn btn-sm btn-outline-info w-100 mt-1" title="View Application">
+                                        <i class="bi bi-send"></i> Application
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Process All Modal -->
+<div class="modal fade" id="processAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-cpu"></i> Process All Candidates</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will process all candidates for this job with AI and generate skill match results.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Candidates without resumes will be skipped.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form th:action="@{/skill-match/job/{jobId}/process-all(jobId=${job.id})}" method="post">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cpu"></i> Start Processing
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function recalculateScore(resultId) {
+        if (confirm('Are you sure you want to recalculate this match score?')) {
+            fetch(`/skill-match/recalculate/${resultId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    }
+
+    function deleteResult(resultId) {
+        if (confirm('Are you sure you want to delete this match result? This action cannot be undone.')) {
+            fetch(`/skill-match/delete/${resultId}?jobId=${jobId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+    }
+
+    function updateRanking() {
+        fetch(`/skill-match/job/${jobId}/update-ranking`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Ranking updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+    }
+
+    // Get jobId from URL or data attribute
+    const jobId = [[${job.id}]];
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

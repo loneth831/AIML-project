@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Dashboard - HR/Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-graph-up"></i> Skill Match Dashboard</h2>
+
+    <!-- Jobs with Match Results -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-briefcase"></i> Active Jobs - Match Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div th:if="${activeJobs.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-briefcase display-1 text-muted mb-4"></i>
+                <h4>No Active Jobs</h4>
+                <p class="text-muted">Create a job posting to start seeing match results.</p>
+                <a href="/jobs/create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Post New Job
+                </a>
+            </div>
+
+            <div th:unless="${activeJobs.isEmpty()}" class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Department</th>
+                        <th>Total Matches</th>
+                        <th>Average Score</th>
+                        <th>Highest Score</th>
+                        <th>Excellent</th>
+                        <th>Good</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="job : ${activeJobs}">
+                        <td>
+                            <strong th:text="${job.title}">Software Engineer</strong>
+                        </td>
+                        <td th:text="${job.department}">Engineering</td>
+                        <td th:text="${jobStats[job.id].totalMatches}">0</td>
+                        <td>
+                            <span th:text="${#numbers.formatDecimal(jobStats[job.id].averageScore, 1, 1)} + '%'">0.0%</span>
+                        </td>
+                        <td>
+                            <span th:text="${#numbers.formatDecimal(jobStats[job.id].maxScore, 1, 1)} + '%'">0.0%</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success" th:text="${jobStats[job.id].excellentMatches}">0</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning" th:text="${jobStats[job.id].goodMatches}">0</span>
+                        </td>
+                        <td>
+                            <a th:href="@{/skill-match/job/{id}(id=${job.id})}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View Results
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

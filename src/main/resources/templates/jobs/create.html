@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post New Job - AI Recruitment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .form-section {
+            border-left: 4px solid #6c5ce7;
+            padding-left: 20px;
+            margin-bottom: 30px;
+        }
+        .required:after {
+            content: " *";
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Post New Job Vacancy</h4>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/jobs/create}" method="post">
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <h5 class="mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label required">Job Title</label>
+                                    <input type="text" class="form-control" name="title" required
+                                           placeholder="e.g., Senior Software Engineer">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label required">Department</label>
+                                    <select name="department" class="form-select" required>
+                                        <option value="">Select Department</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="HR">Human Resources</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="IT">IT</option>
+                                        <option value="Customer Service">Customer Service</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label required">Location</label>
+                                    <input type="text" class="form-control" name="location" required
+                                           placeholder="e.g., New York, Remote, Hybrid">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label required">Job Type</label>
+                                    <select name="jobType" class="form-select" required>
+                                        <option value="">Select Job Type</option>
+                                        <option th:each="type : ${jobTypes}"
+                                                th:value="${type.name()}"
+                                                th:text="${type.displayName}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label required">Number of Vacancies</label>
+                                    <input type="number" class="form-control" name="vacancies" required
+                                           min="1" max="100" value="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Expiry Date</label>
+                                    <input type="datetime-local" class="form-control" name="expiryDateStr">
+                                    <small class="form-text text-muted">Leave blank for no expiry date</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compensation -->
+                        <div class="form-section">
+                            <h5 class="mb-3"><i class="bi bi-cash"></i> Compensation</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Minimum Salary ($)</label>
+                                    <input type="number" class="form-control" name="minSalary"
+                                           min="0" step="1000" placeholder="e.g., 50000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Maximum Salary ($)</label>
+                                    <input type="number" class="form-control" name="maxSalary"
+                                           min="0" step="1000" placeholder="e.g., 80000">
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Leave blank if salary is not disclosed</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requirements -->
+                        <div class="form-section">
+                            <h5 class="mb-3"><i class="bi bi-card-checklist"></i> Requirements</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label required">Experience Required</label>
+                                    <input type="text" class="form-control" name="experienceRequired" required
+                                           placeholder="e.g., 3-5 years, 2+ years">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label required">Education Requirement</label>
+                                    <input type="text" class="form-control" name="educationRequirement" required
+                                           placeholder="e.g., Bachelor's in Computer Science">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label required">Required Skills</label>
+                                    <textarea class="form-control" name="requiredSkills" rows="3" required
+                                              placeholder="Enter skills separated by commas (e.g., Java, Spring Boot, SQL)"></textarea>
+                                    <small class="form-text text-muted">These skills will be used for AI matching</small>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Preferred Skills (Optional)</label>
+                                    <textarea class="form-control" name="preferredSkills" rows="2"
+                                              placeholder="Enter preferred/nice-to-have skills"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-section">
+                            <h5 class="mb-3"><i class="bi bi-file-text"></i> Job Description</h5>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="form-label required">Full Job Description</label>
+                                    <textarea class="form-control" name="description" rows="8" required
+                                              placeholder="Provide a detailed description of the role, responsibilities, and requirements..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Post Job
+                            </button>
+                            <a href="/jobs/manage" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Application - ' + ${candidate.fullName}">Application Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .status-badge {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+        }
+        .info-card {
+            border-left: 4px solid #6c5ce7;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+        .score-excellent {
+            background: linear-gradient(135deg, #20bf6b, #26de81);
+        }
+        .score-good {
+            background: linear-gradient(135deg, #fd9644, #fc5c7d);
+        }
+        .score-average {
+            background: linear-gradient(135deg, #fa8231, #f7b731);
+        }
+        .score-poor {
+            background: linear-gradient(135deg, #fc5c65, #eb3b5a);
+        }
+        .timeline-item {
+            border-left: 2px solid #6c5ce7;
+            padding-left: 20px;
+            margin-left: 10px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6c5ce7;
+        }
+        .note-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .note-private {
+            border-left: 4px solid #dc3545;
+        }
+        .note-public {
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a th:href="@{/applications/job/{id}(id=${job.id})}" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Applications
+            </a>
+            <h2><i class="bi bi-file-person"></i> Application Details</h2>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/applications/{id}/resume/view(id=${application.id})}"
+               class="btn btn-primary" target="_blank">
+                <i class="bi bi-file-pdf"></i> View Resume
+            </a>
+            <a th:href="@{/applications/{id}/resume/download(id=${application.id})}"
+               class="btn btn-success">
+                <i class="bi bi-download"></i> Download
+            </a>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="alert d-flex justify-content-between align-items-center"
+         th:classappend="${application.statusAlertClass}">
+        <div>
+            <strong>Current Status:</strong>
+            <span class="badge status-badge" th:classappend="${application.statusBadgeClass}"
+                  th:text="${application.status != null ? application.status.displayName : 'Unknown'}">Pending</span>
+            <span th:if="${application.shortlistedDate}" class="ms-3">
+            <i class="bi bi-star-fill text-warning"></i> Shortlisted on
+            <span th:text="${#temporals.format(application.shortlistedDate, 'dd MMM yyyy')}"></span>
+        </span>
+        </div>
+        <div>
+            <select class="form-select" id="statusSelect" style="width: auto; display: inline-block;">
+                <option th:each="s : ${statuses}"
+                        th:value="${s.name()}"
+                        th:text="${s.displayName}"
+                        th:selected="${application.status != null and application.status.name() == s.name()}">
+                </option>
+            </select>
+            <button class="btn btn-primary" onclick="updateStatus()">
+                <i class="bi bi-check-lg"></i> Update
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Candidate Info -->
+        <div class="col-md-4">
+            <!-- Candidate Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person"></i> Candidate Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto"
+                             style="width: 80px; height: 80px; font-size: 2rem;">
+                            <span th:text="${#strings.substring(candidate.firstName, 0, 1)} +
+                                           ${#strings.substring(candidate.lastName, 0, 1)}">JD</span>
+                        </div>
+                        <h4 class="mt-2" th:text="${candidate.fullName}">John Doe</h4>
+                        <p class="text-muted" th:text="${candidate.email}">john@example.com</p>
+                    </div>
+
+                    <table class="table table-sm">
+                        <tr>
+                            <td><i class="bi bi-telephone"></i> Phone:</td>
+                            <td th:text="${candidate.phone != null ? candidate.phone : 'Not provided'}">1234567890</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-briefcase"></i> Experience:</td>
+                            <td th:text="${candidate.experienceYears != null ? candidate.experienceYears + ' years' : 'Not specified'}">3 years</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-mortarboard"></i> Education:</td>
+                            <td th:text="${candidate.education != null ? candidate.education : 'Not specified'}">B.Tech</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-building"></i> Current Company:</td>
+                            <td th:text="${application.currentCompany != null ? application.currentCompany : 'Not specified'}">Tech Corp</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-briefcase"></i> Current Position:</td>
+                            <td th:text="${application.currentPosition != null ? application.currentPosition : 'Not specified'}">Developer</td>
+                        </tr>
+                    </table>
+
+                    <div class="mt-3">
+                        <h6>Skills</h6>
+                        <div th:if="${candidate.skills != null}">
+                            <span th:each="skill : ${#strings.listSplit(candidate.skills, ',')}"
+                                  class="badge bg-secondary me-1 mb-1" th:text="${skill.trim()}">Java</span>
+                        </div>
+                        <div th:unless="${candidate.skills != null}" class="text-muted">
+                            No skills listed
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Info Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Application Info</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Applied Date:</td>
+                            <td th:text="${#temporals.format(application.appliedDate, 'dd MMM yyyy HH:mm')}">15 Jan 2024 14:30</td>
+                        </tr>
+                        <tr>
+                            <td>Last Updated:</td>
+                            <td th:text="${#temporals.format(application.updatedAt, 'dd MMM yyyy HH:mm')}">16 Jan 2024 10:15</td>
+                        </tr>
+                        <tr th:if="${application.shortlistedDate}">
+                            <td>Shortlisted:</td>
+                            <td th:text="${#temporals.format(application.shortlistedDate, 'dd MMM yyyy')}">17 Jan 2024</td>
+                        </tr>
+                        <tr th:if="${application.shortlistedBy}">
+                            <td>Shortlisted By:</td>
+                            <td th:text="${application.shortlistedBy}">HR Manager</td>
+                        </tr>
+                        <tr th:if="${application.expectedSalary}">
+                            <td>Expected Salary:</td>
+                            <td>$<span th:text="${application.expectedSalary}">75000</span></td>
+                        </tr>
+                        <tr th:if="${application.noticePeriod}">
+                            <td>Notice Period:</td>
+                            <td th:text="${application.noticePeriod}">30 days</td>
+                        </tr>
+                        <tr>
+                            <td>Location Preference:</td>
+                            <td th:text="${application.locationPreference != null ? application.locationPreference : 'Not specified'}">New York</td>
+                        </tr>
+                        <tr>
+                            <td>Willing to Relocate:</td>
+                            <td>
+                                <span th:if="${application.willingToRelocate}" class="badge bg-success">Yes</span>
+                                <span th:unless="${application.willingToRelocate}" class="badge bg-secondary">No</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Work Authorization:</td>
+                            <td>
+                                <span th:if="${application.hasWorkAuthorization}" class="badge bg-success">Yes</span>
+                                <span th:unless="${application.hasWorkAuthorization}" class="badge bg-danger">No</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column - AI Match & Interview -->
+        <div class="col-md-4">
+            <!-- AI Match Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-cpu"></i> AI Match Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="score-circle"
+                             th:classappend="${application.matchScore >= 80} ? 'score-excellent' :
+                                            (${application.matchScore >= 60} ? 'score-good' :
+                                            (${application.matchScore >= 40} ? 'score-average' : 'score-poor'))">
+                            <span th:text="${#numbers.formatDecimal(application.matchScore, 1, 0)}">85</span>
+                        </div>
+                        <h5 class="mt-2" th:text="${application.matchScore >= 80} ? 'Excellent Match' :
+                                                 (${application.matchScore >= 60} ? 'Good Match' :
+                                                 (${application.matchScore >= 40} ? 'Average Match' : 'Poor Match'))">
+                            Excellent Match
+                        </h5>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Skills Match:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(application.skillsMatchScore, 1, 1)} + '%'">85%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 th:style="'width: ' + ${application.skillsMatchScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Experience Match:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(application.experienceMatchScore, 1, 1)} + '%'">70%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar"
+                                 th:style="'width: ' + ${application.experienceMatchScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Education Match:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(application.educationMatchScore, 1, 1)} + '%'">90%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar"
+                                 th:style="'width: ' + ${application.educationMatchScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a th:href="@{/skill-match/result/job-candidate?jobId=${job.id}&candidateId=${candidate.id}}"
+                           class="btn btn-outline-primary w-100">
+                            <i class="bi bi-graph-up"></i> View Detailed Match
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interview Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Interview Details</h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${application.interviewScheduled}">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> Interview Scheduled
+                        </div>
+
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Date & Time:</td>
+                                <td th:text="${#temporals.format(application.interviewDate, 'dd MMM yyyy HH:mm')}">20 Jan 2024 10:00</td>
+                            </tr>
+                            <tr>
+                                <td>Type:</td>
+                                <td>
+                                    <span class="badge" th:classappend="${application.interviewType == 'ONLINE'} ? 'bg-info' :
+                                                                       (${application.interviewType == 'PHONE'} ? 'bg-warning' : 'bg-secondary')"
+                                          th:text="${application.interviewType}">ONLINE</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${application.interviewLocation}">
+                                <td>Location:</td>
+                                <td th:text="${application.interviewLocation}">Office Address</td>
+                            </tr>
+                            <tr th:if="${application.interviewLink}">
+                                <td>Meeting Link:</td>
+                                <td><a th:href="${application.interviewLink}" target="_blank">Join Meeting</a></td>
+                            </tr>
+                            <tr th:if="${application.interviewerName}">
+                                <td>Interviewer:</td>
+                                <td th:text="${application.interviewerName}">John Smith</td>
+                            </tr>
+                            <tr th:if="${application.interviewerEmail}">
+                                <td>Interviewer Email:</td>
+                                <td th:text="${application.interviewerEmail}">john.smith@company.com</td>
+                            </tr>
+                        </table>
+
+                        <div th:if="${application.interviewFeedback}" class="mt-3">
+                            <h6>Feedback:</h6>
+                            <p class="bg-light p-2 rounded" th:text="${application.interviewFeedback}">Feedback here</p>
+                        </div>
+
+                        <div th:if="${application.interviewRating}" class="mt-2">
+                            <h6>Rating:</h6>
+                            <div>
+                                <span th:each="i : ${#numbers.sequence(1, 5)}" class="fs-4">
+                                    <i th:class="${i <= application.interviewRating} ? 'bi bi-star-fill text-warning' : 'bi bi-star text-muted'"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <button class="btn btn-warning btn-sm me-2" onclick="rescheduleInterview()">
+                                <i class="bi bi-calendar"></i> Reschedule
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="cancelInterview()">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div th:unless="${application.interviewScheduled}">
+                        <div class="text-center py-3">
+                            <i class="bi bi-calendar-x display-4 text-muted"></i>
+                            <p class="mt-2">No interview scheduled yet</p>
+                            <a th:href="@{/applications/{id}/schedule-interview(id=${application.id})}"
+                               class="btn btn-primary">
+                                <i class="bi bi-calendar-plus"></i> Schedule Interview
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Cover Letter & Notes -->
+        <div class="col-md-4">
+            <!-- Cover Letter Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-envelope"></i> Cover Letter</h5>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    <p th:if="${application.coverLetter != null}" th:text="${application.coverLetter}"
+                       class="text-muted" style="white-space: pre-line;">
+                        Cover letter content...
+                    </p>
+                    <p th:unless="${application.coverLetter != null}" class="text-muted text-center">
+                        No cover letter provided
+                    </p>
+                </div>
+            </div>
+
+            <!-- Notes Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-sticky"></i> Notes</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Add Note Form -->
+                    <form th:action="@{/applications/{id}/notes(id=${application.id})}" method="post" class="mb-3">
+                        <div class="mb-2">
+                            <textarea class="form-control" name="note" rows="2"
+                                      placeholder="Add a note..." required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <select name="noteType" class="form-select">
+                                    <option value="GENERAL">General</option>
+                                    <option value="HR">HR Note</option>
+                                    <option value="INTERVIEW">Interview Note</option>
+                                    <option value="FEEDBACK">Feedback</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="isPrivate" value="true">
+                                    <label class="form-check-label">Private Note</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm mt-2 w-100">
+                            <i class="bi bi-plus-circle"></i> Add Note
+                        </button>
+                    </form>
+
+                    <!-- Existing Notes -->
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <div th:if="${application.hrNotes != null}"
+                             th:each="note : ${#strings.listSplit(application.hrNotes, '\n')}">
+                            <div class="note-item"
+                                 th:classappend="${#strings.contains(note, '[PRIVATE]')} ? 'note-private' : 'note-public'">
+                                <small class="text-muted" th:text="${note}">Note content</small>
+                            </div>
+                        </div>
+                        <div th:unless="${application.hrNotes != null}" class="text-center text-muted">
+                            No notes yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="shortlistCandidate()"
+                                th:if="${!application.shortlisted}">
+                            <i class="bi bi-star"></i> Shortlist Candidate
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="removeShortlist()"
+                                th:if="${application.shortlisted}">
+                            <i class="bi bi-star-fill"></i> Remove from Shortlist
+                        </button>
+
+                        <a th:href="@{/ranking/details/job-candidate?jobId=${job.id}&candidateId=${candidate.id}}"
+                           class="btn btn-outline-info">
+                            <i class="bi bi-trophy"></i> View Ranking
+                        </a>
+
+                        <a th:href="@{/hr/candidates/{id}(id=${candidate.id})}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-person"></i> Full Profile
+                        </a>
+
+                        <button class="btn btn-outline-danger" onclick="rejectApplication()"
+                                th:if="${application.status != 'REJECTED' and application.status != 'HIRED'}">
+                            <i class="bi bi-x-circle"></i> Reject Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateStatus() {
+        const status = document.getElementById('statusSelect').value;
+        const notes = prompt('Add notes for this status change (optional):', '');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/applications/' + [[${application.id}]] + '/status';
+
+        addHiddenInput(form, 'status', status);
+        addHiddenInput(form, 'notes', notes || '');
+        addHiddenInput(form, 'notify', 'true');
+        addCSRF(form);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function shortlistCandidate() {
+        const notes = prompt('Add shortlist notes (optional):', '');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/applications/job/' + [[${job.id}]] + '/shortlist';
+
+        addHiddenInput(form, 'candidateIds', [[${candidate.id}]]);
+        addHiddenInput(form, 'notes', notes || '');
+        addCSRF(form);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function removeShortlist() {
+        if (confirm('Remove this candidate from shortlist?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/job/' + [[${job.id}]] + '/shortlist';
+
+            addHiddenInput(form, 'candidateIds', [[${candidate.id}]]);
+            addHiddenInput(form, 'shortlist', 'false');
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function rescheduleInterview() {
+        const dateTime = prompt('Enter new interview date and time (YYYY-MM-DD HH:MM):',
+            [[${application.interviewDate != null ?
+                    #temporals.format(application.interviewDate, 'yyyy-MM-dd HH:mm') : ''}]]);
+        if (dateTime) {
+            const reason = prompt('Reason for rescheduling:', '');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/' + [[${application.id}]] + '/reschedule-interview';
+
+            addHiddenInput(form, 'newDateTime', new Date(dateTime).toISOString());
+            addHiddenInput(form, 'reason', reason || 'No reason provided');
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function cancelInterview() {
+        if (confirm('Are you sure you want to cancel this interview?')) {
+            const reason = prompt('Reason for cancellation:', '');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/' + [[${application.id}]] + '/cancel-interview';
+
+            addHiddenInput(form, 'reason', reason || 'No reason provided');
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function rejectApplication() {
+        if (confirm('Are you sure you want to reject this application?')) {
+            const feedback = prompt('Provide rejection feedback (optional):', '');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/' + [[${application.id}]] + '/status';
+
+            addHiddenInput(form, 'status', 'REJECTED');
+            addHiddenInput(form, 'notes', feedback || '');
+            addHiddenInput(form, 'notify', 'true');
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function addHiddenInput(form, name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    function addCSRF(form) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        if (csrfToken) {
+            addHiddenInput(form, '_csrf', csrfToken);
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

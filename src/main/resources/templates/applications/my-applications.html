@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Applications - Candidate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .application-timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 30px;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: -30px;
+            width: 2px;
+            background: #6c5ce7;
+        }
+        .timeline-item:last-child:before {
+            display: none;
+        }
+        .timeline-icon {
+            position: absolute;
+            left: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #6c5ce7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c5ce7;
+            font-size: 12px;
+        }
+        .application-card {
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .application-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-send"></i> My Applications</h2>
+        <a href="/jobs/browse" class="btn btn-primary">
+            <i class="bi bi-search"></i> Browse More Jobs
+        </a>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${applications.size()}">0</h3>
+                    <p class="text-muted">Total Applications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${#aggregates.sum(applications.![matchScore]) / applications.size()}">0</h3>
+                    <p class="text-muted">Avg Match Score</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${#lists.size(applications.?[status.name() == 'PENDING'])}">0</h3>
+                    <p class="text-muted">Pending Review</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 th:text="${#lists.size(applications.?[status.name() == 'INTERVIEW_SCHEDULED'])}">0</h3>
+                    <p class="text-muted">Interviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="row">
+        <div th:each="app : ${applications}" class="col-md-6 mb-4">
+            <div class="card application-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <a th:href="@{/jobs/view/{id}(id=${app.job.id})}" class="text-decoration-none"
+                                   th:text="${app.job.title}">Software Engineer</a>
+                            </h5>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-building"></i> <span th:text="${app.job.department}">Engineering</span> |
+                                <i class="bi bi-geo-alt"></i> <span th:text="${app.job.location}">New York</span>
+                            </p>
+                        </div>
+                        <span class="badge" th:classappend="${app.statusBadgeClass}"
+                              th:text="${app.status.displayName}">Pending</span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Applied on</small>
+                            <p class="mb-0" th:text="${#temporals.format(app.appliedDate, 'dd MMM yyyy')}">15 Jan 2024</p>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Last updated</small>
+                            <p class="mb-0" th:text="${#temporals.format(app.updatedAt, 'dd MMM yyyy')}">16 Jan 2024</p>
+                        </div>
+                    </div>
+
+                    <!-- AI Match Score -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>AI Match Score</span>
+                            <span class="fw-bold" th:text="${#numbers.formatDecimal(app.matchScore, 1, 1)} + '%'">85%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar"
+                                 th:classappend="${app.matchScore >= 80} ? 'bg-success' :
+                                                (${app.matchScore >= 60} ? 'bg-warning' : 'bg-danger')"
+                                 th:style="'width: ' + ${app.matchScore} + '%;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Interview Status -->
+                    <div th:if="${app.interviewScheduled}" class="alert alert-success py-2 mb-3">
+                        <i class="bi bi-calendar-check"></i>
+                        <strong>Interview Scheduled:</strong>
+                        <span th:text="${#temporals.format(app.interviewDate, 'dd MMM yyyy HH:mm')}"></span>
+                        <span th:if="${app.interviewType}" class="badge bg-secondary ms-2"
+                              th:text="${app.interviewType}">ONLINE</span>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a th:href="@{/applications/{id}(id=${app.id})}" class="btn btn-outline-primary">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                        <div>
+                            <span th:if="${app.status.name() == 'PENDING'}" class="text-muted">
+                                <i class="bi bi-clock"></i> Awaiting review
+                            </span>
+                            <span th:if="${app.status.name() == 'SHORTLISTED'}" class="text-success">
+                                <i class="bi bi-star"></i> Shortlisted!
+                            </span>
+                            <span th:if="${app.status.name() == 'INTERVIEW_SCHEDULED'}" class="text-primary">
+                                <i class="bi bi-calendar"></i> Interview scheduled
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${applications.isEmpty()}" class="text-center py-5">
+        <i class="bi bi-send display-1 text-muted mb-4"></i>
+        <h4>No Applications Yet</h4>
+        <p class="text-muted mb-4">You haven't applied for any jobs yet. Start your journey now!</p>
+        <a href="/jobs/browse" class="btn btn-primary btn-lg">
+            <i class="bi bi-search"></i> Browse Jobs
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

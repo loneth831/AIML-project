@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Applications - ' + ${job.title}">Job Applications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .application-card {
+            transition: transform 0.2s;
+            border-left: 4px solid transparent;
+            margin-bottom: 15px;
+        }
+        .application-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .status-pending { border-left-color: #ffc107; }
+        .status-shortlisted { border-left-color: #17a2b8; }
+        .status-interview { border-left-color: #007bff; }
+        .status-rejected { border-left-color: #dc3545; }
+        .status-hired { border-left-color: #28a745; }
+        .stats-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .filter-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .score-badge {
+            font-size: 1.1rem;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/applications/dashboard" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2><i class="bi bi-people"></i> Applications</h2>
+            <h4 th:text="${job.title}">Software Engineer</h4>
+            <p class="text-muted">
+                <i class="bi bi-building"></i> <span th:text="${job.department}"></span> |
+                <i class="bi bi-geo-alt"></i> <span th:text="${job.location}"></span> |
+                <i class="bi bi-briefcase"></i> <span th:text="${job.jobType.displayName}"></span>
+            </p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{/applications/job/{id}/shortlisted(id=${job.id})}" class="btn btn-info">
+                <i class="bi bi-star"></i> Shortlisted
+            </a>
+            <button class="btn btn-success" onclick="exportApplications()">
+                <i class="bi bi-download"></i> Export
+            </button>
+            <button class="btn btn-warning" onclick="removeRejected()">
+                <i class="bi bi-trash"></i> Remove Rejected
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 th:text="${stats.totalApplications}">0</h3>
+                <p class="mb-0">Total</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: #ffc107;">
+                <h3 th:text="${stats.statusCounts != null and stats.statusCounts.PENDING != null ? stats.statusCounts.PENDING : 0}">0</h3>
+                <p class="mb-0">Pending</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: #17a2b8;">
+                <h3 th:text="${stats.statusCounts != null and stats.statusCounts.SHORTLISTED != null ? stats.statusCounts.SHORTLISTED : 0}">0</h3>
+                <p class="mb-0">Shortlisted</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: #007bff;">
+                <h3 th:text="${stats.statusCounts != null and stats.statusCounts.INTERVIEW_SCHEDULED != null ? stats.statusCounts.INTERVIEW_SCHEDULED : 0}">0</h3>
+                <p class="mb-0">Interview</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: #28a745;">
+                <h3 th:text="${stats.statusCounts != null and stats.statusCounts.HIRED != null ? stats.statusCounts.HIRED : 0}">0</h3>
+                <p class="mb-0">Hired</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card" style="background: #6c757d;">
+                <h3 th:text="${#numbers.formatDecimal(stats.averageMatchScore, 1, 1)}">0.0</h3>
+                <p class="mb-0">Avg Score</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s.displayName}"
+                            th:selected="${currentStatus != null and currentStatus.name() == s.name()}">
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control"
+                           th:value="${search}" placeholder="Name or email...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Min Score</label>
+                <select name="minScore" class="form-select" onchange="this.form.submit()">
+                    <option value="">Any</option>
+                    <option value="80">80%+</option>
+                    <option value="60">60%+</option>
+                    <option value="40">40%+</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <select name="sortBy" class="form-select" onchange="this.form.submit()">
+                    <option value="appliedDate">Applied Date</option>
+                    <option value="matchScore">Match Score</option>
+                    <option value="candidateName">Candidate Name</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <a th:href="@{/applications/job/{id}(id=${job.id})}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-clockwise"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll" onclick="toggleAll()">
+                        <label class="form-check-label" for="selectAll">
+                            Select All (<span id="selectedCount">0</span>)
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <select class="form-select w-auto" id="bulkStatus">
+                            <option value="">Change Status</option>
+                            <option th:each="s : ${statuses}"
+                                    th:value="${s.name()}"
+                                    th:text="${s.displayName}">
+                            </option>
+                        </select>
+                        <button class="btn btn-primary" onclick="bulkUpdate()">
+                            <i class="bi bi-check-all"></i> Update
+                        </button>
+                        <button class="btn btn-success" onclick="bulkShortlist()">
+                            <i class="bi bi-star"></i> Shortlist
+                        </button>
+                        <button class="btn btn-info" onclick="bulkSchedule()">
+                            <i class="bi bi-calendar"></i> Schedule Interview
+                        </button>
+                        <button class="btn btn-danger" onclick="bulkReject()">
+                            <i class="bi bi-x-circle"></i> Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Applications</h5>
+            <span class="text-muted" th:text="${applications.size()} + ' applications'"></span>
+        </div>
+        <div class="card-body">
+            <div th:if="${applications.isEmpty()}" class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted mb-4"></i>
+                <h4>No Applications Found</h4>
+                <p class="text-muted">No applications match your filter criteria.</p>
+            </div>
+
+            <div th:unless="${applications.isEmpty()}" class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th width="40">
+                            <input type="checkbox" class="form-check-input" id="selectAllHeader" onclick="toggleAll()">
+                        </th>
+                        <th>Candidate</th>
+                        <th>Applied</th>
+                        <th>Status</th>
+                        <th>AI Match</th>
+                        <th>Interview</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="app : ${applications}"
+                        th:classappend="${app.rowClass}"
+                        class="ranking-row">
+
+                        <td>
+                            <input type="checkbox" class="form-check-input application-checkbox"
+                                   th:value="${app.id}" th:data-candidate="${app.candidate.fullName}">
+                        </td>
+
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                                     style="width: 40px; height: 40px;">
+                                        <span th:text="${#strings.substring(app.candidate.firstName, 0, 1)} +
+                                                       ${#strings.substring(app.candidate.lastName, 0, 1)}">JD</span>
+                                </div>
+                                <div>
+                                    <strong th:text="${app.candidate.fullName}">John Doe</strong><br>
+                                    <small class="text-muted" th:text="${app.candidate.email}">john@example.com</small>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span th:text="${#temporals.format(app.appliedDate, 'dd MMM')}">15 Jan</span><br>
+                            <small class="text-muted" th:text="${#temporals.format(app.appliedDate, 'HH:mm')}">14:30</small>
+                        </td>
+
+                        <td>
+                                <span class="badge" th:classappend="${app.statusBadgeClass}"
+                                      th:text="${app.status.displayName}">Pending</span>
+                            <span th:if="${app.shortlistedDate}" class="badge bg-info d-block mt-1">
+                                    <i class="bi bi-star-fill"></i> Shortlisted
+                                </span>
+                        </td>
+
+                        <td>
+                                <span th:if="${app.matchScore != null}"
+                                      class="badge score-badge"
+                                      th:classappend="${app.matchScore >= 80} ? 'bg-success' :
+                                                     (${app.matchScore >= 60} ? 'bg-warning' : 'bg-danger')"
+                                      th:text="${#numbers.formatDecimal(app.matchScore, 1, 1)} + '%'">
+                                </span>
+                            <span th:unless="${app.matchScore != null}" class="badge bg-secondary">N/A</span>
+
+                            <div class="progress mt-2" style="height: 3px;" th:if="${app.matchScore != null}">
+                                <div class="progress-bar" role="progressbar"
+                                     th:classappend="${app.matchScore >= 80} ? 'bg-success' :
+                                                        (${app.matchScore >= 60} ? 'bg-warning' : 'bg-danger')"
+                                     th:style="'width: ' + ${app.matchScore} + '%;'">
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                                <span th:if="${app.interviewScheduled}" class="badge bg-success">
+                                    <i class="bi bi-calendar-check"></i>
+                                    <span th:text="${#temporals.format(app.interviewDate, 'dd MMM HH:mm')}"></span>
+                                </span>
+                            <span th:unless="${app.interviewScheduled}" class="text-muted">
+                                    <i class="bi bi-calendar"></i> Not scheduled
+                                </span>
+                            <span th:if="${app.interviewType}" class="badge bg-secondary d-block mt-1"
+                                  th:text="${app.interviewType}">ONLINE</span>
+                        </td>
+
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a th:href="@{/applications/{id}(id=${app.id})}"
+                                   class="btn btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a th:href="@{/applications/{id}/schedule-interview(id=${app.id})}"
+                                   class="btn btn-outline-success" title="Schedule Interview">
+                                    <i class="bi bi-calendar-plus"></i>
+                                </a>
+                                <a th:href="@{/hr/candidates/{id}(id=${app.candidate.id})}"
+                                   class="btn btn-outline-info" title="View Profile">
+                                    <i class="bi bi-person"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-warning"
+                                        onclick="quickStatusChange(${app.id})" title="Quick Status">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav class="mt-4" th:if="${totalPages > 1}">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                <a class="page-link" th:href="@{/applications/job/{id}(id=${job.id}, page=${currentPage - 1})}">Previous</a>
+            </li>
+            <li th:each="i : ${#numbers.sequence(1, totalPages)}"
+                class="page-item" th:classappend="${i == currentPage} ? 'active'">
+                <a class="page-link" th:href="@{/applications/job/{id}(id=${job.id}, page=${i})}" th:text="${i}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                <a class="page-link" th:href="@{/applications/job/{id}(id=${job.id}, page=${currentPage + 1})}">Next</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<script>
+    // Toggle all checkboxes
+    function toggleAll() {
+        const selectAll = document.getElementById('selectAll').checked;
+        const selectAllHeader = document.getElementById('selectAllHeader')?.checked;
+        const checkboxes = document.querySelectorAll('.application-checkbox');
+
+        checkboxes.forEach(cb => {
+            cb.checked = selectAll || selectAllHeader;
+        });
+
+        updateSelectedCount();
+    }
+
+    // Update selected count
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.application-checkbox:checked');
+        document.getElementById('selectedCount').textContent = checkboxes.length;
+    }
+
+    // Get selected application IDs
+    function getSelectedIds() {
+        const checkboxes = document.querySelectorAll('.application-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    // Bulk status update
+    function bulkUpdate() {
+        const ids = getSelectedIds();
+        const status = document.getElementById('bulkStatus').value;
+
+        if (ids.length === 0) {
+            alert('Please select at least one application');
+            return;
+        }
+
+        if (!status) {
+            alert('Please select a status');
+            return;
+        }
+
+        const notes = prompt('Add notes for this bulk update (optional):', '');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/applications/bulk-status-update';
+
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'applicationIds';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        addHiddenInput(form, 'status', status);
+        addHiddenInput(form, 'notes', notes || '');
+        addHiddenInput(form, 'jobId', [[${job.id}]]);
+        addCSRF(form);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Bulk shortlist
+    function bulkShortlist() {
+        const ids = getSelectedIds();
+
+        if (ids.length === 0) {
+            alert('Please select at least one application');
+            return;
+        }
+
+        const notes = prompt('Add shortlist notes (optional):', '');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/applications/job/' + [[${job.id}]] + '/shortlist';
+
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'candidateIds';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        addHiddenInput(form, 'notes', notes || '');
+        addCSRF(form);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Bulk schedule interview
+    function bulkSchedule() {
+        const ids = getSelectedIds();
+
+        if (ids.length === 0) {
+            alert('Please select at least one application');
+            return;
+        }
+
+        // Redirect to batch scheduling page (you'd need to implement this)
+        window.location.href = '/applications/batch-schedule?ids=' + ids.join(',');
+    }
+
+    // Bulk reject
+    function bulkReject() {
+        const ids = getSelectedIds();
+
+        if (ids.length === 0) {
+            alert('Please select at least one application');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to reject ' + ids.length + ' applications?')) {
+            return;
+        }
+
+        const feedback = prompt('Provide rejection feedback (optional):', '');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/applications/bulk-status-update';
+
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'applicationIds';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        addHiddenInput(form, 'status', 'REJECTED');
+        addHiddenInput(form, 'notes', feedback || '');
+        addHiddenInput(form, 'jobId', [[${job.id}]]);
+        addCSRF(form);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Quick status change for single application
+    function quickStatusChange(applicationId) {
+        const statuses = [
+            'PENDING', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'REJECTED', 'HIRED'
+        ];
+
+        const status = prompt('Enter new status (PENDING/SHORTLISTED/INTERVIEW_SCHEDULED/REJECTED/HIRED):', '');
+
+        if (status && statuses.includes(status)) {
+            const notes = prompt('Add notes (optional):', '');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/' + applicationId + '/status';
+
+            addHiddenInput(form, 'status', status);
+            addHiddenInput(form, 'notes', notes || '');
+            addHiddenInput(form, 'notify', 'true');
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Remove rejected applications
+    function removeRejected() {
+        if (confirm('Are you sure you want to remove all rejected applications?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/applications/job/' + [[${job.id}]] + '/remove-rejected';
+            addCSRF(form);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Export applications
+    function exportApplications() {
+        const status = document.querySelector('select[name="status"]')?.value || '';
+        const search = document.querySelector('input[name="search"]')?.value || '';
+        window.location.href = '/applications/job/' + [[${job.id}]] + '/export?status=' + status + '&search=' + encodeURIComponent(search);
+    }
+
+    // Helper functions
+    function addHiddenInput(form, name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    function addCSRF(form) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        if (csrfToken) {
+            addHiddenInput(form, '_csrf', csrfToken);
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.application-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

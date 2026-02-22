@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Dashboard - AI Recruitment System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        .stats-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .candidate-card {
+            transition: transform 0.2s;
+        }
+        .candidate-card:hover {
+            transform: translateY(-3px);
+        }
+        .top-candidate {
+            border-left: 4px solid #20bf6b;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> HR Dashboard</h2>
+
+    <!-- Welcome Message -->
+    <div class="alert alert-primary mb-4">
+        <h4><i class="bi bi-briefcase"></i> Welcome, HR Manager!</h4>
+        <p class="mb-0">Manage candidates and view AI-powered rankings</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" th:text="${totalCandidates}">0</div>
+                <div>Total Candidates</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #20bf6b, #26de81);">
+                <div class="stats-number" th:text="${activeCandidates}">0</div>
+                <div>Active Candidates</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #fd9644, #fc5c7d);">
+                <div class="stats-number" th:text="${mlProcessed}">0</div>
+                <div>AI Processed</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #a55eea, #8854d0);">
+                <div class="stats-number" th:text="${topCandidates != null ? topCandidates.size() : 0}">0</div>
+                <div>Top Candidates</div>
+            </div>
+        </div>
+        <!-- Add this card for resume stats -->
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #00b894, #00cec9);">
+                <div class="stats-number" th:text="${resumesCount}">0</div>
+                <div>Resumes Uploaded</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 5 Candidates -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-trophy"></i> Top 5 AI-Ranked Candidates</h5>
+            <span class="badge bg-light text-dark">AI Powered</span>
+        </div>
+        <div class="card-body">
+            <div th:if="${topCandidates != null and !topCandidates.isEmpty()}" class="row">
+                <div th:each="candidate, stat : ${topCandidates}" class="col-md-12 mb-3">
+                    <div class="card candidate-card top-candidate">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <span class="badge bg-primary" style="font-size: 1.2rem;">
+                                            <span th:text="${stat.index + 1}">1</span>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1" th:text="${candidate.fullName}">John Doe</h6>
+                                        <p class="mb-1 text-muted" th:text="${candidate.email}">email@example.com</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-briefcase"></i>
+                                            <span th:text="${candidate.experienceYears != null ? candidate.experienceYears + ' years experience' : 'Experience not specified'}">
+                                            </span>
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="mb-2">
+                                        <span class="badge bg-warning">
+    AI Score: <span th:text="${candidate.currentResume != null and candidate.currentResume.mlProcessed ?
+                #numbers.formatDecimal(candidate.currentResume.mlScore, 1, 1) : 'N/A'}">0.0</span>
+</span>
+                                    </div>
+                                    <div>
+                                        <a th:href="@{/hr/candidates/{id}(id=${candidate.id})}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small><strong>Skills:</strong> <span th:text="${candidate.skills != null ? candidate.skills : 'Not specified'}"></span></small><br>
+                                <small><strong>Education:</strong> <span th:text="${candidate.education != null ? candidate.education : 'Not specified'}"></span></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:if="${topCandidates == null or topCandidates.isEmpty()}" class="text-center py-4">
+                <i class="bi bi-info-circle display-4 text-info"></i>
+                <h4 class="mt-3">No AI-ranked candidates yet</h4>
+                <p class="text-muted">Process candidates with AI to see rankings</p>
+                <a th:href="@{/hr/candidates}" class="btn btn-primary mt-2">
+                    <i class="bi bi-people"></i> View All Candidates
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Candidates & Quick Actions -->
+    <div class="row">
+        <!-- Recent Candidates -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Candidates</h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${recentCandidates != null and !recentCandidates.isEmpty()}" class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Experience</th>
+                                <th>AI Status</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="candidate : ${recentCandidates}">
+                                <td>
+                                    <strong th:text="${candidate.fullName}">John Doe</strong><br>
+                                    <small class="text-muted" th:text="'Joined: ' + ${#temporals.format(candidate.createdAt, 'dd/MM/yyyy')}"></small>
+                                </td>
+                                <td th:text="${candidate.email}">email@example.com</td>
+                                <td th:text="${candidate.experienceYears != null ? candidate.experienceYears + ' years' : 'N/A'}">N/A</td>
+                                <td>
+                                    <!-- For mlProcessed check -->
+                                    <span th:if="${candidate.currentResume != null and candidate.currentResume.mlProcessed}"
+                                          class="badge bg-success">
+    <i class="bi bi-check-circle"></i> Processed
+</span>
+                                    <span th:unless="${candidate.currentResume != null and candidate.currentResume.mlProcessed}"
+                                          class="badge bg-warning">
+    <i class="bi bi-clock"></i> Pending
+</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/hr/candidates/{id}(id=${candidate.id})}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div th:if="${recentCandidates == null or recentCandidates.isEmpty()}" class="text-center py-4">
+                        <i class="bi bi-people display-4 text-muted"></i>
+                        <h4 class="mt-3">No candidates yet</h4>
+                        <p class="text-muted">Candidates will appear here once they register</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{/hr/candidates}" class="btn btn-primary">
+                            <i class="bi bi-people"></i> View All Candidates
+                        </a>
+                        <a th:href="@{/hr/candidates}" class="btn btn-success">
+                            <i class="bi bi-search"></i> Search Candidates
+                        </a>
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#processAllModal">
+                            <i class="bi bi-cpu"></i> Process All with AI
+                        </button>
+                        <a th:href="@{/}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Post New Job
+                        </a>
+                    </div>
+
+                    <!-- AI Status -->
+                    <div class="mt-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6><i class="bi bi-robot"></i> AI System Status</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                         th:style="'width: ' + ${totalCandidates > 0 ? (mlProcessed * 100 / totalCandidates) : 0} + '%;'"
+                                         th:text="${totalCandidates > 0 ? (mlProcessed * 100 / totalCandidates) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    <span th:text="${mlProcessed}">0</span> of <span th:text="${totalCandidates}">0</span> candidates processed
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Process All Modal -->
+<div class="modal fade" id="processAllModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cpu"></i> Process All Candidates</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will process all unprocessed candidates with AI. This may take a few minutes.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Candidates already processed will not be reprocessed unless forced.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="processAllCandidates()">
+                    <i class="bi bi-cpu"></i> Start Processing
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function processAllCandidates() {
+        alert('This feature would process all candidates with AI. In a real implementation, this would call a backend API.');
+        // In real implementation, you would call:
+        // fetch('/hr/process-all-ai', {method: 'POST'})
+        //   .then(response => response.json())
+        //   .then(data => {
+        //       alert(data.message);
+        //       window.location.reload();
+        //   });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
