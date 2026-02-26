@@ -91,7 +91,8 @@
         <div class="tab-content" id="profileTabContent">
             <!-- Personal Information Tab -->
             <div class="tab-pane fade show active" id="personal" role="tabpanel">
-                <form th:action="@{/candidate/profile/update}" method="post">
+                <!-- Personal Information Tab -->
+                <form th:action="@{/candidate/profile/update/personal}" method="post">
                     <h4 class="mb-4"><i class="bi bi-person-vcard"></i> Personal Information</h4>
 
                     <div class="row g-3">
@@ -126,7 +127,8 @@
 
             <!-- Professional Information Tab -->
             <div class="tab-pane fade" id="professional" role="tabpanel">
-                <form th:action="@{/candidate/profile/update}" method="post">
+                <!-- Professional Information Tab -->
+                <form th:action="@{/candidate/profile/update/professional}" method="post">
                     <h4 class="mb-4"><i class="bi bi-briefcase"></i> Professional Information</h4>
 
                     <div class="row g-3">
@@ -148,12 +150,6 @@
                             <input type="text" class="form-control" name="education"
                                    th:value="${user.education}"
                                    placeholder="e.g., B.Sc Computer Science">
-                        </div>
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i>
-                                Updating your professional information may trigger AI re-analysis of your profile
-                            </div>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">

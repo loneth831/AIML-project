@@ -167,7 +167,7 @@
 
         console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
 
-        // Function to send POST request
+        // Function to send POST request with proper error handling
         function sendPostRequest(url, csrfToken, csrfHeader) {
             console.log('Sending POST request to:', url);
 
@@ -187,18 +187,18 @@
             })
                 .then(response => {
                     console.log('Response status:', response.status);
+                    console.log('Response URL:', response.url);
+
                     if (response.redirected) {
                         console.log('Redirecting to:', response.url);
                         window.location.href = response.url;
+                    } else if (response.ok) {
+                        // If successful but no redirect, reload the page
+                        window.location.reload();
                     } else {
                         return response.text().then(text => {
-                            console.log('Response text:', text);
-                            if (response.ok) {
-                                // If successful but no redirect, reload the page
-                                window.location.reload();
-                            } else {
-                                alert('Error: ' + (text || 'Unknown error occurred'));
-                            }
+                            console.log('Error response:', text);
+                            alert('Error: ' + (text || 'Unknown error occurred'));
                         });
                     }
                 })
@@ -232,15 +232,36 @@
             });
         });
 
-        // Handle delete buttons
+        // Handle delete buttons - FIXED VERSION
         document.querySelectorAll('.action-delete').forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent any other events
+
                 const userId = this.getAttribute('data-id');
                 const userName = this.getAttribute('data-name');
+
                 console.log('Delete clicked for user:', userId, userName);
+
                 if (confirm('Are you sure you want to delete user: ' + userName + '?\nThis action cannot be undone!')) {
-                    sendPostRequest('/admin/users/' + userId + '/delete', csrfToken, csrfHeader);
+                    // Create a form dynamically instead of using fetch
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin/users/' + userId + '/delete';
+                    form.style.display = 'none';
+
+                    // Add CSRF token
+                    if (csrfToken) {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = '_csrf';
+                        csrfInput.value = csrfToken;
+                        form.appendChild(csrfInput);
+                    }
+
+                    document.body.appendChild(form);
+                    console.log('Submitting delete form for user:', userId);
+                    form.submit();
                 }
             });
         });
@@ -248,7 +269,6 @@
         // Handle role change forms
         document.querySelectorAll('form[action*="/role"]').forEach(form => {
             form.addEventListener('submit', function(e) {
-                // Let the form submit normally - no need to prevent default
                 console.log('Role change form submitted');
             });
         });

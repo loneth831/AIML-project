@@ -48,15 +48,13 @@ public class UserController {
         return "candidate/profile";
     }
 
-    @PostMapping("/profile/update")
-    public String updateProfile(@RequestParam String firstName,
-                                @RequestParam String lastName,
-                                @RequestParam String email,
-                                @RequestParam String phone,
-                                @RequestParam(required = false) String skills,
-                                @RequestParam(required = false) Integer experienceYears,
-                                @RequestParam(required = false) String education,
-                                RedirectAttributes redirectAttributes) {
+    // Update Personal Information (from first tab)
+    @PostMapping("/profile/update/personal")
+    public String updatePersonalInfo(@RequestParam String firstName,
+                                     @RequestParam String lastName,
+                                     @RequestParam String email,
+                                     @RequestParam String phone,
+                                     RedirectAttributes redirectAttributes) {
 
         User currentUser = getCurrentUser();
         Long userId = currentUser.getId();
@@ -67,19 +65,38 @@ public class UserController {
             return "redirect:/candidate/profile";
         }
 
-        // Update user
+        // Update only personal fields
         User updatedUser = new User();
         updatedUser.setFirstName(firstName);
         updatedUser.setLastName(lastName);
         updatedUser.setEmail(email);
         updatedUser.setPhone(phone);
+
+        userService.updateUser(userId, updatedUser);
+
+        redirectAttributes.addFlashAttribute("message", "Personal information updated successfully");
+        return "redirect:/candidate/profile";
+    }
+
+    // Update Professional Information (from second tab)
+    @PostMapping("/profile/update/professional")
+    public String updateProfessionalInfo(@RequestParam(required = false) String skills,
+                                         @RequestParam(required = false) Integer experienceYears,
+                                         @RequestParam(required = false) String education,
+                                         RedirectAttributes redirectAttributes) {
+
+        User currentUser = getCurrentUser();
+        Long userId = currentUser.getId();
+
+        // Update only professional fields
+        User updatedUser = new User();
         updatedUser.setSkills(skills);
         updatedUser.setExperienceYears(experienceYears);
         updatedUser.setEducation(education);
 
         userService.updateUser(userId, updatedUser);
 
-        redirectAttributes.addFlashAttribute("message", "Profile updated successfully");
+        redirectAttributes.addFlashAttribute("message", "Professional information updated successfully");
         return "redirect:/candidate/profile";
     }
 

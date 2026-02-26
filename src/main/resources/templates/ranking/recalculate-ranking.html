@@ -56,14 +56,14 @@
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i>
                 <strong>Current Weight Configuration:</strong><br>
-                <span class="badge bg-primary">Skills: <span th:text="${currentWeights.skillsWeight} + '%'"></span></span>
-                <span class="badge bg-warning">Experience: <span th:text="${currentWeights.experienceWeight} + '%'"></span></span>
-                <span class="badge bg-info">Education: <span th:text="${currentWeights.educationWeight} + '%'"></span></span>
-                <span th:if="${currentWeights.personalityWeight > 0}" class="badge bg-secondary">
-                    Personality: <span th:text="${currentWeights.personalityWeight} + '%'"></span>
+                <span class="badge bg-primary">Skills: <span th:text="${weightConfig.skillsWeight} + '%'"></span></span>
+                <span class="badge bg-warning">Experience: <span th:text="${weightConfig.experienceWeight} + '%'"></span></span>
+                <span class="badge bg-info">Education: <span th:text="${weightConfig.educationWeight} + '%'"></span></span>
+                <span th:if="${weightConfig.personalityWeight > 0}" class="badge bg-secondary">
+                    Personality: <span th:text="${weightConfig.personalityWeight} + '%'"></span>
                 </span>
-                <span th:if="${currentWeights.culturalFitWeight > 0}" class="badge bg-secondary">
-                    Cultural Fit: <span th:text="${currentWeights.culturalFitWeight} + '%'"></span>
+                <span th:if="${weightConfig.culturalFitWeight > 0}" class="badge bg-secondary">
+                    Cultural Fit: <span th:text="${weightConfig.culturalFitWeight} + '%'"></span>
                 </span>
             </div>
 
@@ -90,12 +90,12 @@
                             </label>
                             <input type="range" class="form-range weight-slider" id="skillsWeight"
                                    name="skillsWeight" min="0" max="100" step="5"
-                                   th:value="${currentWeights.skillsWeight}"
+                                   th:value="${weightConfig.skillsWeight}"
                                    oninput="updateWeight('skills', this.value)">
                             <div class="d-flex justify-content-between">
                                 <span>0%</span>
                                 <span class="weight-value" id="skillsValue"
-                                      th:text="${currentWeights.skillsWeight} + '%'">50%</span>
+                                      th:text="${weightConfig.skillsWeight} + '%'">50%</span>
                                 <span>100%</span>
                             </div>
                         </div>
@@ -108,12 +108,12 @@
                             </label>
                             <input type="range" class="form-range weight-slider" id="experienceWeight"
                                    name="experienceWeight" min="0" max="100" step="5"
-                                   th:value="${currentWeights.experienceWeight}"
+                                   th:value="${weightConfig.experienceWeight}"
                                    oninput="updateWeight('experience', this.value)">
                             <div class="d-flex justify-content-between">
                                 <span>0%</span>
                                 <span class="weight-value" id="experienceValue"
-                                      th:text="${currentWeights.experienceWeight} + '%'">30%</span>
+                                      th:text="${weightConfig.experienceWeight} + '%'">30%</span>
                                 <span>100%</span>
                             </div>
                         </div>
@@ -126,12 +126,12 @@
                             </label>
                             <input type="range" class="form-range weight-slider" id="educationWeight"
                                    name="educationWeight" min="0" max="100" step="5"
-                                   th:value="${currentWeights.educationWeight}"
+                                   th:value="${weightConfig.educationWeight}"
                                    oninput="updateWeight('education', this.value)">
                             <div class="d-flex justify-content-between">
                                 <span>0%</span>
                                 <span class="weight-value" id="educationValue"
-                                      th:text="${currentWeights.educationWeight} + '%'">20%</span>
+                                      th:text="${weightConfig.educationWeight} + '%'">20%</span>
                                 <span>100%</span>
                             </div>
                         </div>
@@ -140,22 +140,22 @@
                         <div class="mb-4">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="includePersonality"
-                                       th:checked="${currentWeights.personalityWeight > 0}"
+                                       th:checked="${weightConfig.personalityWeight > 0}"
                                        onchange="togglePersonality()">
                                 <label class="form-check-label">
                                     <i class="bi bi-emoji-smile"></i> Include Personality Assessment
                                 </label>
                             </div>
                             <div id="personalitySection"
-                                 th:style="${currentWeights.personalityWeight > 0} ? 'display: block;' : 'display: none;'">
+                                 th:style="${weightConfig.personalityWeight > 0} ? 'display: block;' : 'display: none;'">
                                 <input type="range" class="form-range weight-slider" id="personalityWeight"
                                        name="personalityWeight" min="0" max="100" step="5"
-                                       th:value="${currentWeights.personalityWeight}"
+                                       th:value="${weightConfig.personalityWeight}"
                                        oninput="updateWeight('personality', this.value)">
                                 <div class="d-flex justify-content-between">
                                     <span>0%</span>
                                     <span class="weight-value" id="personalityValue"
-                                          th:text="${currentWeights.personalityWeight} + '%'">0%</span>
+                                          th:text="${weightConfig.personalityWeight} + '%'">0%</span>
                                     <span>100%</span>
                                 </div>
                             </div>
@@ -165,22 +165,22 @@
                         <div class="mb-4">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="includeCultural"
-                                       th:checked="${currentWeights.culturalFitWeight > 0}"
+                                       th:checked="${weightConfig.culturalFitWeight > 0}"
                                        onchange="toggleCultural()">
                                 <label class="form-check-label">
                                     <i class="bi bi-people"></i> Include Cultural Fit Assessment
                                 </label>
                             </div>
                             <div id="culturalSection"
-                                 th:style="${currentWeights.culturalFitWeight > 0} ? 'display: block;' : 'display: none;'">
+                                 th:style="${weightConfig.culturalFitWeight > 0} ? 'display: block;' : 'display: none;'">
                                 <input type="range" class="form-range weight-slider" id="culturalWeight"
                                        name="culturalFitWeight" min="0" max="100" step="5"
-                                       th:value="${currentWeights.culturalFitWeight}"
+                                       th:value="${weightConfig.culturalFitWeight}"
                                        oninput="updateWeight('cultural', this.value)">
                                 <div class="d-flex justify-content-between">
                                     <span>0%</span>
                                     <span class="weight-value" id="culturalValue"
-                                          th:text="${currentWeights.culturalFitWeight} + '%'">0%</span>
+                                          th:text="${weightConfig.culturalFitWeight} + '%'">0%</span>
                                     <span>100%</span>
                                 </div>
                             </div>
@@ -249,11 +249,11 @@
 </div>
 
 <script>
-    let skills = [[${currentWeights.skillsWeight}]];
-    let experience = [[${currentWeights.experienceWeight}]];
-    let education = [[${currentWeights.educationWeight}]];
-    let personality = [[${currentWeights.personalityWeight}]];
-    let cultural = [[${currentWeights.culturalFitWeight}]];
+    let skills = [[${weightConfig.skillsWeight}]];
+    let experience = [[${weightConfig.experienceWeight}]];
+    let education = [[${weightConfig.educationWeight}]];
+    let personality = [[${weightConfig.personalityWeight}]];
+    let cultural = [[${weightConfig.culturalFitWeight}]];
 
     function updateWeight(type, value) {
         switch(type) {
@@ -329,9 +329,9 @@
             document.getElementById('personalityValue').textContent = '0%';
 
             // Restore original weights
-            skills = [[${currentWeights.skillsWeight}]];
-            experience = [[${currentWeights.experienceWeight}]];
-            education = [[${currentWeights.educationWeight}]];
+            skills = [[${weightConfig.skillsWeight}]];
+            experience = [[${weightConfig.experienceWeight}]];
+            education = [[${weightConfig.educationWeight}]];
 
             document.getElementById('skillsWeight').value = skills;
             document.getElementById('experienceWeight').value = experience;
@@ -384,10 +384,10 @@
             document.getElementById('culturalValue').textContent = '0%';
 
             // Restore original weights
-            skills = [[${currentWeights.skillsWeight}]];
-            experience = [[${currentWeights.experienceWeight}]];
-            education = [[${currentWeights.educationWeight}]];
-            personality = [[${currentWeights.personalityWeight}]];
+            skills = [[${weightConfig.skillsWeight}]];
+            experience = [[${weightConfig.experienceWeight}]];
+            education = [[${weightConfig.educationWeight}]];
+            personality = [[${weightConfig.personalityWeight}]];
 
             document.getElementById('skillsWeight').value = skills;
             document.getElementById('experienceWeight').value = experience;

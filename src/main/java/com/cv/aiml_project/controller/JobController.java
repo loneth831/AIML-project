@@ -383,10 +383,10 @@ public class JobController {
     @PreAuthorize("hasAnyRole('HR', 'ADMIN')")
     public String deleteJob(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            jobService.deleteJob(id);
-            redirectAttributes.addFlashAttribute("message", "Job deleted successfully");
+            jobService.softDeleteJob(id);
+            redirectAttributes.addFlashAttribute("message", "Job deactivated successfully");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Failed to delete job: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Failed to deactivate job: " + e.getMessage());
         }
         return "redirect:/jobs/manage";
     }

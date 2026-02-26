@@ -154,30 +154,37 @@ public class JobService {
     }
 
     /**
-     * Delete Job
+     * Soft delete job - marks job as inactive and optionally hides it from view
+     * This preserves all application data and rankings while making the job unavailable
      */
-    public void deleteJob(Long jobId) {
+    @Transactional
+    public void softDeleteJob(Long jobId) {
         Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found"));
+                .orElseThrow(() -> new RuntimeException("Job not found with id: " + jobId));
 
-        // Delete all application files first
+        // Mark as inactive (this will hide it from job listings)
+        job.setActive(false);
+
+        // Optionally add a deleted flag if you want to track deleted jobs separately
+        // job.setDeleted(true);
+        // job.setDeletedDate(LocalDateTime.now());
+
+        // You might also want to update all applications to show the job is no longer available
         List<JobApplication> applications = applicationRepository.findByJob(job);
         for (JobApplication app : applications) {
-            if (app.getResumePath() != null) {
-                try {
-                    Files.deleteIfExists(Paths.get(app.getResumePath()));
-                } catch (IOException e) {
-                    // Log error but continue
-                    e.printStackTrace();
-                }
-            }
+            // Optionally add a note to applications
+            String existingNotes = app.getHrNotes();
+            String note = "[System] The job \"" + job.getTitle() + "\" has been removed by HR.";
+            app.setHrNotes(existingNotes != null ? existingNotes + "\n" + note : note);
         }
 
-        // Delete all applications for this job
-        applicationRepository.deleteAll(applications);
+        // Save the job (now inactive)
+        jobRepository.save(job);
 
-        // Delete the job
-        jobRepository.delete(job);
+        // Save any updated applications
+        if (!applications.isEmpty()) {
+            applicationRepository.saveAll(applications);
+        }
     }
 
     // ==================== JOB APPLICATION OPERATIONS ====================

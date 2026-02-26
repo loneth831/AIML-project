@@ -126,20 +126,26 @@
                                    class="btn btn-sm btn-outline-success" title="View Skill Match Results">
                                     <i class="bi bi-graph-up"></i>
                                 </a>
+                                <!-- Replace your buttons with these -->
                                 <button th:if="${job.active}"
-                                        class="btn btn-sm btn-outline-secondary"
-                                        onclick="toggleJobStatus(${job.id}, false)"
+                                        class="btn btn-sm btn-outline-secondary toggle-job-btn"
+                                        th:data-id="${job.id}"
+                                        data-action="deactivate"
                                         title="Deactivate Job">
                                     <i class="bi bi-pause"></i>
                                 </button>
+
                                 <button th:unless="${job.active}"
-                                        class="btn btn-sm btn-outline-success"
-                                        onclick="toggleJobStatus(${job.id}, true)"
+                                        class="btn btn-sm btn-outline-success toggle-job-btn"
+                                        th:data-id="${job.id}"
+                                        data-action="activate"
                                         title="Activate Job">
                                     <i class="bi bi-play"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger"
-                                        onclick="deleteJob(${job.id}, '${job.title}')"
+
+                                <button class="btn btn-sm btn-outline-danger delete-job-btn"
+                                        th:data-id="${job.id}"
+                                        th:data-title="${job.title}"
                                         title="Delete Job">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -163,42 +169,68 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle job status buttons
+        document.querySelectorAll('.toggle-job-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const jobId = this.dataset.id;
+                const active = this.dataset.action === 'activate';
+                toggleJobStatus(jobId, active);
+            });
+        });
+
+        // Delete job buttons
+        document.querySelectorAll('.delete-job-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const jobId = this.dataset.id;
+                const jobTitle = this.dataset.title;
+                deleteJob(jobId, jobTitle);
+            });
+        });
+    });
+
     function toggleJobStatus(jobId, active) {
-        const action = active ? 'activate' : 'deactivate';
         const status = active ? 'activate' : 'deactivate';
 
         if (confirm(`Are you sure you want to ${status} this job?`)) {
-            fetch(`/jobs/toggle-status/${jobId}?active=${active}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
-                }
-            }).then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else {
-                    window.location.reload();
-                }
-            });
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/jobs/toggle-status/${jobId}`;
+
+            const activeInput = document.createElement('input');
+            activeInput.type = 'hidden';
+            activeInput.name = 'active';
+            activeInput.value = active;
+            form.appendChild(activeInput);
+
+            addCSRF(form);
+            document.body.appendChild(form);
+            form.submit();
         }
     }
 
     function deleteJob(jobId, jobTitle) {
         if (confirm(`Are you sure you want to delete the job: "${jobTitle}"?\nThis action cannot be undone and will remove all applications.`)) {
-            fetch(`/jobs/delete/${jobId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
-                }
-            }).then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else {
-                    window.location.reload();
-                }
-            });
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/jobs/delete/${jobId}`;
+
+            addCSRF(form);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function addCSRF(form) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_csrf';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
         }
     }
 </script>

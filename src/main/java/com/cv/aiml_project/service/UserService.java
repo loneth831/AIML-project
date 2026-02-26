@@ -1,8 +1,10 @@
 package com.cv.aiml_project.service;
 
+import com.cv.aiml_project.entity.JobApplication;
+import com.cv.aiml_project.entity.Resume;
 import com.cv.aiml_project.entity.Role;
 import com.cv.aiml_project.entity.User;
-import com.cv.aiml_project.repository.UserRepository;
+import com.cv.aiml_project.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +30,18 @@ public class UserService {
 
     @Autowired
     private ResumeService resumeService;  // Delegate resume operations
+
+    @Autowired
+    private ResumeRepository resumeRepository;
+
+    @Autowired
+    private JobApplicationRepository jobApplicationRepository;
+
+    @Autowired
+    private CandidateRankingRepository candidateRankingRepository;
+
+    @Autowired
+    private SkillMatchResultRepository skillMatchResultRepository;
 
     // ==================== USER CRUD OPERATIONS ====================
 
@@ -129,8 +145,53 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public void deleteUser(Long userId) {
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        try {
+            // For CANDIDATE users, need to delete all related records in correct order
+            if (user.isCandidate()) {
+                // 1. Delete candidate rankings first
+                candidateRankingRepository.deleteByCandidateId(userId);
+
+                // 2. Delete skill match results
+                skillMatchResultRepository.deleteByCandidateId(userId);
+
+                // 3. Handle job applications
+                List<JobApplication> applications = jobApplicationRepository.findByCandidate(user);
+                for (JobApplication app : applications) {
+                    // Delete resume file if exists
+                    if (app.getResumePath() != null) {
+                        try {
+                            Files.deleteIfExists(Paths.get(app.getResumePath()));
+                        } catch (IOException e) {
+                            System.err.println("Could not delete application resume file: " + app.getResumePath());
+                        }
+                    }
+                }
+                jobApplicationRepository.deleteAll(applications);
+
+                // 4. Handle resumes last (since skill_match_results references them)
+                List<Resume> resumes = resumeRepository.findByUser(user);
+                for (Resume resume : resumes) {
+                    // Delete the physical file
+                    try {
+                        Files.deleteIfExists(Paths.get(resume.getFilePath()));
+                    } catch (IOException e) {
+                        System.err.println("Could not delete resume file: " + resume.getFilePath());
+                    }
+                }
+                resumeRepository.deleteAll(resumes);
+            }
+
+            // Finally delete the user
+            userRepository.delete(user);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete user: " + e.getMessage(), e);
+        }
     }
 
     // ==================== RESUME OPERATIONS (delegated) ====================
